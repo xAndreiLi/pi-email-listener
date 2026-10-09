@@ -90,6 +90,16 @@ Andrei's own, connected by him.
 Outlook, Outlook.com and Microsoft 365 are read through Microsoft Graph. You need an app
 registration once — nobody else can do this for you, and the package never sees the sign-in.
 
+> **An app registration lives in a Microsoft Entra tenant, and a personal outlook.com or hotmail.com
+> account is not in one.** Signing in to the Entra portal with a personal Microsoft account fails
+> with "Selected user account does not exist in tenant 'Microsoft Services'" — Microsoft routes
+> personal accounts to that tenant, and they are not members of it, so they cannot register an app
+> or create a tenant from there. Use a work or school account (an organisation's tenant, with at
+> least the Application Developer role), or a tenant of your own. There is no way around it: email
+> apps can no longer use basic authentication against Outlook.com either, so IMAP needs the same
+> OAuth app registration. If you do not have a tenant, someone in your organisation does, and their
+> IT is the one to ask.
+
 1. Go to <https://entra.microsoft.com> → **App registrations** → **New registration**.
 2. Name it anything, and set **Supported account types** to "Accounts in any organizational
 directory and personal Microsoft accounts" — that covers a work mailbox and an outlook.com one.
