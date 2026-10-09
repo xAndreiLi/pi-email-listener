@@ -28,7 +28,9 @@
 	"scripts": {
 		"fetch": "jiti scripts/fetch.ts",
 		"fetch:once": "jiti scripts/fetch.ts --once",
-		"self-check": "jiti scripts/self-check.ts"
+		"self-check": "jiti scripts/self-check.ts",
+		"load-check": "jiti scripts/load-check.ts",
+		"test:all": "npm run self-check && npm run load-check"
 	},
 	"peerDependencies": {
 		"@earendil-works/pi-ai": "*",

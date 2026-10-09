@@ -1,8 +1,8 @@
 # pi-email-listener
 
-**Status: M1 built — the fetcher and the spool. No wake yet.** The design is agreed and written up
-in [`docs/PLAN.md`](docs/PLAN.md); what exists today is the half that talks to a mailbox. Nothing
-here has been pointed at a real mailbox.
+**Status: M2 built — the fetcher, the spool, and the wake. Verified offline; not yet run against a
+real mailbox, and the live wake test has not been run.** The design is agreed and written up in
+[`docs/PLAN.md`](docs/PLAN.md).
 
 The ears. A [pi](https://pi.dev) package that watches a mailbox and turns the agent when mail
 arrives, handing over **a pointer to the message** — who, what, when, and the file to read — never a
@@ -32,13 +32,29 @@ set that up in it.
 - Stores every new message as a raw `.eml` plus an append-only `index.jsonl` line, per account,
   under `<agent dir>/mail/<account>/`, with the source's own cursor in `cursor.json`.
 - Re-runs are safe: message ids already in the index are not stored twice, and the cursor means a
-  restart resumes rather than re-reads.
-- One broken account does not stop the others.
+  restart resumes rather than re-reads. One broken account does not stop the others.
+- **`/email-watch` turns a session on to mail** (and the same command turns it off). Nothing is
+  watched until you ask: no session is turned by mail by surprise. Messages that arrived while
+  nothing was watching are delivered when you turn it on.
+- Every message turns the agent — there is no gate. The wake is a pointer: sender, subject, time,
+  account and the file to read. Never the body.
+- A message carrying a **link or an attachment** quarantines its turn: `bash`, `edit` and `write`
+  are refused until the turn ends, so the agent can report a stranger's mail but cannot act on it
+  unattended. Other tools, including `read`, still work.
+- A second message arriving mid-turn queues behind it; every message still gets its own turn.
 
 ## Try it
 
 ```bash
-npm run self-check   # 17 assertions, no network, no credentials, no session
+npm run test:all     # 17 spool/fetcher checks + 24 extension checks, no network, no session
+```
+
+`scripts/live-test.mjs` drives a real pi over RPC, settles the agent, then drops a message into the
+spool and watches for a turn with no prompt behind it. That is the only test that proves pi accepts
+the wake — and it spawns a session and costs a model call, so it is run deliberately:
+
+```bash
+node scripts/live-test.mjs
 ```
 
 For local development, `node_modules` is a junction to your pi install, as in pi-job-listener:
@@ -62,6 +78,9 @@ To watch it run against a directory of exported `.eml` files, write
 
 then `npm run fetch` (poll forever) or `npm run fetch:once` (one pass). Both paths can be moved for a
 test with `PI_EMAIL_LISTENER_CONFIG` and `PI_EMAIL_LISTENER_MAIL_DIR`.
+
+`PI_EMAIL_LISTENER_AUTOSTART` starts watching without `/email-watch`, for a session that should
+always be woken — and for the RPC test, which cannot type a command.
 
 A real mailbox needs an OAuth2 provider adapter, which is M3 — and the first live account is
 Andrei's own, connected by him.

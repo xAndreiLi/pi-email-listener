@@ -78,9 +78,8 @@ Consequences to design around, not to hide:
 - Volume is the user's choice: a mailbox that receives 200 messages a day turns the agent 200 times.
 - Messages that arrive while a turn is running queue rather than interrupt it; the queue is pi's,
   and each queued message still gets its own turn.
-- **The wake payload is a pointer**, so the transcript cost of each wake stays small: account,
-  received time, from, to/cc, subject, and the spool file to read. No body. The body is one `read`
-  away, and bodies in the transcript are permanent.
+- **The wake payload is a pointer**: sender, subject, received time, account and the spool file to
+  read. No body. The body is one `read` away, and bodies in the transcript are permanent.
 
 ## 5. Providers
 
@@ -131,6 +130,15 @@ when "what else came in?" stops being answerable by listing a directory; `email_
 `email_archive` and `email_draft` (never auto-send) are later and deliberate — every registered tool
 is context the model pays for on every request.
 
+## 7a. Watching is opt-in
+
+`/email-watch` turns watching on for this session and the same command turns it off. Nothing is
+watched until it is asked for, and when it is, the messages already in the spool are delivered, so
+turning it on after a day away catches up. Starting it says so out loud, including the capture
+warning: a mail turn puts a stranger's message in the transcript and capture copies the transcript on
+settle. A session that should always be woken sets `PI_EMAIL_LISTENER_AUTOSTART`, which is also how
+the RPC test turns it on, a test being unable to type a command.
+
 ## 8. Milestones
 
 - **M1 — fetcher and spool. Built.** `src/source.ts` (the two-call source interface, plus a fixture
@@ -144,11 +152,20 @@ is context the model pays for on every request.
   each undelivered message turns the session with its pointer, the queue holds while a turn runs,
   `tool_call` quarantine applies, and `session_shutdown` tears down idempotently. Tested per the
   wiki's pi-extension testing procedure: stub `pi` API offline, then drive a real pi over RPC and
-  observe the wake.
+  observe the wake. **Built and verified offline:** `src/wake.ts` holds the testable half
+  (undelivered lines, the pointer text, whether a message carries a link or an attachment) and
+  `src/extension.ts` the pi wiring (`sendMessage` with `triggerTurn` when idle and
+  `deliverAs: "followUp"` when not; `tool_call` refusing `bash`/`edit`/`write` during a quarantined
+  turn, released on `agent_settled`; idempotent teardown on `session_shutdown`; watching opt-in via
+  `/email-watch`, so no session is turned by surprise and a backlog is delivered when it is turned
+  on). `scripts/load-check.ts` drives all of it against a stub pi API — 24 checks, no network, no
+  model, no session. **Not yet proven: that pi accepts the wake.** `scripts/live-test.mjs` is written
+  for that — drive a real pi over RPC, settle it, spool a message, watch for a turn with no prompt
+  behind it — and has not been run, because it spawns a session and costs a model call.
 - **M3 — a real provider.** One adapter against a live mailbox, with OAuth2 token storage, reconnect
   and catch-up after downtime. The first live account is Andrei's, connected by him.
-- **M4 — delivery cursor and catch-up reporting.** What the agent is told after downtime: the newest
-  *k* messages, and how many were skipped.
+- **M4 — catch-up reporting.** What the agent is told after downtime: the newest *k* messages and
+  how many were skipped. Today, turning on a watch with a backlog delivers every message in it.
 - **M5 — always-on deployment.** The fetcher as a supervised process (detached from a session, or a
   scheduled task on Windows), so tracking genuinely is unconditional. A hosted agent (RPC/SDK) stays
   open for the case where nobody has a session open at all.
