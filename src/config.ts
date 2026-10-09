@@ -18,10 +18,17 @@ export interface AccountConfig {
 	tenant?: string;
 	/** graph only: mailbox to read, default the signed-in user's. */
 	mailbox?: string;
-	/** graph only: folder to watch, default the inbox. */
+	/** graph and imap: folder to watch, default the inbox. */
 	folder?: string;
 	/** graph only: where a first sync starts, so a first run does not copy a whole mailbox. */
 	since?: string;
+	/** imap only: server and account. The password is the mailbox's own, not an app's. */
+	host?: string;
+	port?: number;
+	user?: string;
+	password?: string;
+	/** imap only: the name of an environment variable holding the password, instead of storing it. */
+	passwordEnv?: string;
 }
 
 export interface Config {

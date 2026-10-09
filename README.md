@@ -1,166 +1,142 @@
 # pi-email-listener
 
-**Status: M2 built — the fetcher, the spool, and the wake. Verified offline; not yet run against a
-real mailbox, and the live wake test has not been run.** The design is agreed and written up in
-[`docs/PLAN.md`](docs/PLAN.md).
+**Status: the agent-address front door is built.** A mailbox the agent owns is read over IMAP, every
+message turns the agent in a pi session, and the wake is a pointer rather than a summary. Verified
+offline (86 checks) and live against pi over RPC. Not yet run against a real mailbox — that needs an
+account and an app password, which is yours to create.
 
-The ears. A [pi](https://pi.dev) package that watches a mailbox and turns the agent when mail
-arrives, handing over **a pointer to the message** — who, what, when, and the file to read — never a
-summary of it. The agent opens the message itself.
+## The idea
 
-Sibling to [pi-job-listener](https://github.com/xAndreiLi/pi-job-listener), which does the same for
-long-running processes. It inherits the pointer rule and deliberately drops the gate: there, the
-ambiguous question is whether a process's middle output is worth interrupting for; here, every
-message turns the agent.
+**The agent gets an email address of its own, and mail comes to it.** You cc the agent on a thread, or
+forward it a message. That arrived-at address is the front door.
+
+It is deliberately the least privileged design we could find, after three others were tried and
+measured against what they actually cost:
+
+| Route | Why not |
+|---|---|
+| Read your inbox through Microsoft Graph | Needs an app registration in an Entra tenant, and a personal outlook.com account cannot register one at all; a corporate one needs an admin to consent |
+| Read your client's local store | Only sees what that client synced on that machine, needs the client installed, and reads an undocumented internal format |
+| Hook Outlook by COM | Microsoft states it is unsupported in new Outlook and that all COM automation ceases with classic Outlook — and names "external desktop process" as having no replacement |
+| **An address the agent owns** | No registration, no tenant, no consent, no client, no OS dependency — and the sender's provider stops mattering |
+
+That last row is the reason it won. Because whatever someone cc's or forwards from arrives as mail,
+**one IMAP adapter covers Outlook, Gmail, Fastmail, Proton Bridge, a corporate Exchange mailbox and
+anything else** — no per-provider adapters, and the only thing anyone has to obtain is a password for
+a mailbox they already control.
+
+Two consequences worth naming:
+
+- **Privacy inverts.** The other routes ask for the whole inbox. This asks only for what you hand
+  over.
+- **The agent becomes a participant, not a watcher.** It has an identity, which is also what would
+  make replying possible later, under its own name.
 
 ## How it is put together
 
 ```
-mailbox ──▶ fetcher (always on, no pi) ──▶ spool of files ──▶ extension in a session ──▶ turn
-             OAuth, reconnect, catch-up      .eml + index      opt-in per session
+mailbox the agent owns ──▶ fetcher (no pi) ──▶ spool of files ──▶ extension in a session ──▶ turn
+   IMAP, reconnect, cursor      .eml + index      opt-in via /email-watch
 ```
 
-The fetcher owns the fragile half — connection, tokens, reconnect, sync position — and its only
-output is files, so it runs with or without a session and is testable with no network. The extension
-owns the wake. Nothing wakes an agent by surprise: a session is only turned by mail once the user has
-set that up in it.
+The fetcher owns the connection and the sync position, and its only output is files, so it runs with
+or without a session. The extension owns the wake. Nothing turns an agent until `/email-watch` is run
+in that session.
 
-## What works today
+## Set it up
 
-- Reads a mailbox through a `MailSource`: `listNew(cursor)` and `fetch(id)`. The only source so far
-  is `fixture`, a directory of `.eml` files — enough to watch the spool fill with no credentials.
-- Stores every new message as a raw `.eml` plus an append-only `index.jsonl` line, per account,
-  under `<agent dir>/mail/<account>/`, with the source's own cursor in `cursor.json`.
-- Re-runs are safe: message ids already in the index are not stored twice, and the cursor means a
-  restart resumes rather than re-reads. One broken account does not stop the others.
-- **`/email-watch` turns a session on to mail** (and the same command turns it off). Nothing is
-  watched until you ask: no session is turned by mail by surprise. Messages that arrived while
-  nothing was watching are delivered when you turn it on.
-- Every message turns the agent — there is no gate. The wake is a pointer: sender, subject, time,
-  account and the file to read. Never the body.
-- A message carrying a **link or an attachment** quarantines its turn: `bash`, `edit` and `write`
-  are refused until the turn ends, so the agent can report a stranger's mail but cannot act on it
-  unattended. Other tools, including `read`, still work.
-- A second message arriving mid-turn queues behind it; every message still gets its own turn.
+**1. Make a mailbox for the agent.** A fresh Gmail account is the easiest: free, and it still offers
+app passwords. Turn on 2-Step Verification, then create an app password at
+<https://myaccount.google.com/apppasswords> — 16 characters, no OAuth, no Cloud project, no consent
+screen.
 
-## Try it
-
-```bash
-npm run test:all     # 17 spool/fetcher checks + 24 extension checks, no network, no session
-```
-
-`scripts/live-test.mjs` drives a real pi over RPC, settles the agent, then drops a message into the
-spool and watches for a turn with no prompt behind it. That is the only test that proves pi accepts
-the wake — and it spawns a session and costs a model call, so it is run deliberately:
-
-```bash
-node scripts/live-test.mjs
-```
-
-For local development, `node_modules` is a junction to your pi install, as in pi-job-listener:
-
-```
-mklink /J node_modules <pi install>\node_modules
-```
-
-Do **not** run `npm install` while that junction is in place — npm would write into the pi install
-it points at. The package resolves its own dependencies from what pi already provides.
-
-To watch it run against a directory of exported `.eml` files, write
-`<agent dir>/pi-email-listener.json`:
-
-```json
-{
-  "accounts": [{ "name": "test", "provider": "fixture", "dir": "C:/path/to/eml-files" }],
-  "pollSeconds": 30
-}
-```
-
-then `npm run fetch` (poll forever) or `npm run fetch:once` (one pass). Both paths can be moved for a
-test with `PI_EMAIL_LISTENER_CONFIG` and `PI_EMAIL_LISTENER_MAIL_DIR`.
-
-`PI_EMAIL_LISTENER_AUTOSTART` starts watching without `/email-watch`, for a session that should
-always be woken — and for the RPC test, which cannot type a command.
-
-A real mailbox needs an OAuth2 provider adapter, which is M3 — and the first live account is
-Andrei's own, connected by him.
-
-## Outlook (Microsoft Graph)
-
-Outlook, Outlook.com and Microsoft 365 are read through Microsoft Graph. You need an app
-registration once — nobody else can do this for you, and the package never sees the sign-in.
-
-> **An app registration lives in a Microsoft Entra tenant, and a personal outlook.com or hotmail.com
-> account is not in one.** Signing in to the Entra portal with a personal Microsoft account fails
-> with "Selected user account does not exist in tenant 'Microsoft Services'" — Microsoft routes
-> personal accounts to that tenant, and they are not members of it, so they cannot register an app
-> or create a tenant from there. Use a work or school account (an organisation's tenant, with at
-> least the Application Developer role), or a tenant of your own. There is no way around it: email
-> apps can no longer use basic authentication against Outlook.com either, so IMAP needs the same
-> OAuth app registration. If you do not have a tenant, someone in your organisation does, and their
-> IT is the one to ask.
->
-> **The tenant that registers the app does not have to be the mailbox's tenant.** An app registered
-> in any tenant, with supported account types set to include personal Microsoft accounts, can be
-> authorised by a personal outlook.com mailbox — that user consents for themselves, with no
-> administrator involved. So a test address on outlook.com is still usable: it needs *a* tenant to
-> register the app, not its own.
->
-> **Expect an administrator for a corporate mailbox.** Third-party mail clients are subject to the
-> same tenant policy — Thunderbird's own users have been met with "need admin approval" — and
-> Microsoft's default consent policy for Exchange-related Graph permissions is being tightened to
-> require admin consent unless an app is approved by the tenant's mail client policy.
-
-1. Go to <https://entra.microsoft.com> → **App registrations** → **New registration**.
-2. Name it anything, and set **Supported account types** to "Accounts in any organizational
-directory and personal Microsoft accounts" — that covers a work mailbox and an outlook.com one.
-3. Under **Authentication → Advanced settings**, set **Allow public client flows** to **Yes**. The
-device code flow does not work without it, and there is no redirect URI to create.
-4. Under **API permissions**, add **Microsoft Graph → Delegated → `Mail.Read`**. Do not add
-`offline_access`; it is requested at run time and is what buys the refresh token.
-5. Copy the **Application (client) ID** into the account in `<agent dir>/pi-email-listener.json`:
+**2. Tell the package about it** in `<agent dir>/pi-email-listener.json`:
 
 ```json
 {
   "accounts": [
     {
-      "name": "work",
-      "provider": "graph",
-      "clientId": "<application (client) id>",
-      "tenant": "common",
-      "mailbox": "me",
-      "folder": "inbox",
-      "since": "2026-10-09T00:00:00Z"
+      "name": "agent",
+      "provider": "imap",
+      "host": "imap.gmail.com",
+      "user": "your.agent@gmail.com",
+      "passwordEnv": "PI_EMAIL_AGENT_PASSWORD",
+      "folder": "INBOX"
     }
   ],
   "pollSeconds": 30
 }
 ```
 
-`since` is where the first sync starts. It exists so a first run does not copy an entire mailbox to
-disk — set it to now, or to whenever you want the record to begin.
+`password` works too, but `passwordEnv` names an environment variable instead of storing it in the
+file. The mailbox is never modified: nothing is marked read, moved or deleted.
 
-Then, once per account:
+**3. Fetch once** to prove it:
 
 ```bash
-npm run mail:auth work   # prints a code to enter at microsoft.com/devicelogin
-npm run fetch            # or fetch:once
+npm run fetch:once     # or npm run fetch to poll
 ```
 
-The refresh token is stored beside the spool for that account, so the fetch needs no further
-sign-in. `mail:auth` again replaces it.
+**4. Start watching in a session** with `/email-watch` (again to stop). Then cc the agent on a thread
+or forward it something, and watch the turn happen.
 
-**A corporate mailbox** may need consent before any of this works: if the tenant does not let users
-consent to apps themselves, an administrator grants it once under **Enterprise applications** → the
-app → **Permissions** → **Grant admin consent**. For a mailbox in someone else's tenant it is usually
-better that they register their own app and use their own `clientId` — the package supports one per
-account, and that keeps their IT in charge of their own consent.
+## What works today
 
-## A real mailbox needs a real dependency tree
+- **Sources**: `imap` (a mailbox the agent owns — the front door), `graph` (read your own Microsoft
+  mailbox directly, if you can get an app registration), and `fixture` (a directory of `.eml` files,
+  for testing with no credentials).
+- **Spool**: every new message as a raw `.eml` plus an append-only `index.jsonl` line per account,
+  under `<agent dir>/mail/<account>/`, with the source's cursor in `cursor.json`. Re-runs never store
+  a message twice.
+- **Wake**: every message turns the agent — no gate, no batching, no suppression. The wake is a
+  pointer: sender, subject, time, account, and the file to read. Never the body.
+- **Quarantine**: a message carrying a link or an attachment has `bash`, `edit` and `write` refused
+  until that turn ends, so the agent can report a stranger's mail but not act on it unattended.
+- **Forwarded mail**: a `Fwd:` message gives up its real author inside the quoted block, so the
+  pointer names who actually wrote it rather than blaming the forwarder.
 
-This repository installs its own dependencies (`npm install`), so `node_modules` is a normal
-install. Earlier it was a Windows junction into the pi install, which worked for imports but meant
-npm could never be run; if you recreate that junction, you cannot install anything.
+## Checks
+
+```bash
+npm run test:all   # 86 checks: spool and fetcher, extension against a stub pi API,
+                   # Graph against a stubbed Graph, sign-in against a stubbed identity
+                   # platform, IMAP against a stubbed server. Offline, no credentials.
+npm run live       # drives a real pi over RPC, settles it, spools a message and watches for a
+                   # turn with no prompt behind it. Spawns a session and costs a model call.
+```
+
+## Reading your own mailbox instead (Outlook, Microsoft 365)
+
+`provider: "graph"` reads a Microsoft mailbox directly, which is a different bargain: it sees
+everything, and it needs an app registration.
+
+> **An app registration lives in a Microsoft Entra tenant, and a personal outlook.com or hotmail.com
+> account is not in one.** Signing in to the Entra portal with a personal Microsoft account fails
+> with "Selected user account does not exist in tenant 'Microsoft Services'". Use a work or school
+> account, or a tenant of your own.
+>
+> **The tenant that registers the app does not have to be the mailbox's tenant.** An app registered
+> anywhere, with supported account types including personal Microsoft accounts, can be authorised by
+> a personal outlook.com mailbox — that user consents for themselves.
+>
+> **Expect an administrator for a corporate mailbox.** Third-party clients face the same policy —
+> Thunderbird's users have been met with "need admin approval" — and Microsoft's default consent
+> policy for Exchange-related permissions is being tightened to require it.
+
+1. Register an app at <https://entra.microsoft.com> → **App registrations** → **New registration**.
+   Supported account types: "Accounts in any organizational directory and personal Microsoft
+   accounts". Under **Authentication → Advanced settings**, set **Allow public client flows** to
+   **Yes**. Under **API permissions**, add **Microsoft Graph → Delegated → `Mail.Read`** (not
+   `offline_access`; that is requested at run time). Copy the **Application (client) ID**.
+2. Put it in the account as `"provider": "graph"` with `"clientId"`, `"tenant": "common"`, and
+   `"since"` (where a first sync starts, so a first run does not copy a whole mailbox).
+3. `npm run mail:auth <account>` — prints a code to enter at microsoft.com/devicelogin. The refresh
+   token is stored beside the spool.
+
+## A note on dependencies
+
+This repository installs its own dependencies; `node_modules` is a normal install, not a junction into
+the pi install. Do not replace it with a junction — npm cannot install through one.
 
 ## Licence
 

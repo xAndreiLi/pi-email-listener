@@ -11,6 +11,7 @@
 import { createHash } from "node:crypto";
 import { type AccountConfig, loadConfig } from "./config.ts";
 import { graphSource } from "./graph.ts";
+import { imapSource } from "./imap.ts";
 import { accessTokenFor } from "./microsoft-auth.ts";
 import { type MailSource, fixtureSource } from "./source.ts";
 import { accountDir, readCursor, readIndex, storeMessage, writeCursor } from "./spool.ts";
@@ -32,9 +33,28 @@ export function sourceFor(account: AccountConfig): MailSource {
 				since: account.since,
 				accessToken: () => accessTokenFor(account.name),
 			});
+		case "imap": {
+			if (!account.host || !account.user) {
+				throw new Error(`account "${account.name}" needs a "host" and a "user" to use provider imap`);
+			}
+			const password = account.password ?? (account.passwordEnv ? process.env[account.passwordEnv] : undefined);
+			if (!password) {
+				throw new Error(
+					`account "${account.name}" has no password — set "password", or "passwordEnv" naming an environment variable that holds it`,
+				);
+			}
+			return imapSource(account.name, {
+				host: account.host,
+				port: account.port,
+				user: account.user,
+				password,
+				mailbox: account.folder,
+				since: account.since,
+			});
+		}
 		default:
 			throw new Error(
-				`account "${account.name}" asks for provider "${account.provider}", which does not exist yet — available: fixture, graph`,
+				`account "${account.name}" asks for provider "${account.provider}", which does not exist yet — available: fixture, graph, imap`,
 			);
 	}
 }
@@ -89,7 +109,9 @@ export async function run(argv = process.argv.slice(2)): Promise<void> {
 				log(`[${account.name}] ${(error as Error).message}`);
 			}
 		}
-		if (once) return;
+		if (once) break;
 		await new Promise((resolve) => setTimeout(resolve, config.pollSeconds * 1000));
 	}
+	// A source may hold a connection open across passes; let it go on the way out.
+	for (const { source } of accounts) await source.close?.();
 }

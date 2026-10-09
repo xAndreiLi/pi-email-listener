@@ -78,14 +78,16 @@ IMAP route needs the same registration. There is no credential-only way in.
 
 ## What is left
 
+**Chosen:** give the agent an address of its own and let mail be sent to it ([c6](#c6)) — no
+registration, no consent, no client, and the sender's provider stops mattering. That is the front
+door now; the routes below it are what remains for reading a mailbox the agent does not own.
+
 1. **Register the app in a tenant you can reach** ([c4](#c4)), set it to allow personal Microsoft
    accounts, and a personal outlook.com mailbox works with the user's own consent. A corporate
    mailbox then needs its own admin to consent — or to register its own app.
 2. **Get your own tenant** (Azure free signup, or the Microsoft 365 Developer Program sandbox).
-3. **Read a client's local store instead** ([c5](#c5)) — no registration of ours at all, and one
-   reader covers many providers, but it only sees what that client synced on that machine.
-4. **Give the agent an address of its own and let mail be sent to it** ([c6](#c6)) — no
-   registration, no consent, no client, and the sender's provider stops mattering.
+4. **Read a client's local store** ([c5](#c5)) — no registration of ours at all, and one reader
+   covers many providers, but it only sees what that client synced on that machine.
 5. **Do not go to Microsoft for the first live mailbox at all** — Google imposes no such tenant
    structure on an individual, which is why the Gmail path may prove the shorter route to a
    working end-to-end demo even though Outlook is the destination.

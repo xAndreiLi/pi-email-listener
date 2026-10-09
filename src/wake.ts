@@ -7,6 +7,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { accountDir, readIndex, type StoredMessage } from "./spool.ts";
+import { originalSender } from "./source.ts";
 
 export interface Pending {
 	/** Index line the message sits on, which is also the delivery cursor. */
@@ -47,10 +48,16 @@ export function readRaw(account: string, message: StoredMessage): string {
 }
 
 /** The pointer: who, what, when, and the file to read. The body stays in the file. */
-export function pointer(account: string, message: StoredMessage): string {
+export function pointer(account: string, message: StoredMessage, raw?: string): string {
 	const who = message.from.name ? `${message.from.name} <${message.from.address}>` : message.from.address;
+	// A forward carries the forwarder as its sender and the real author inside the body. Saying
+	// nothing about that would make the pointer wrong about who wrote it.
+	const original = raw ? originalSender(raw, { ...message, id: message.id }) : undefined;
+	const forwarded = original
+		? ` (forwarded${original.name ? ` by ${message.from.address}` : ""} · originally from ${original.name ?? original.address})`
+		: "";
 	return [
-		`[email] ${who} · ${message.subject || "(no subject)"}`,
+		`[email] ${who}${forwarded} · ${message.subject || "(no subject)"}`,
 		`${message.receivedAt} · ${account} · ${join(accountDir(account), message.file)}`,
 	].join("\n");
 }

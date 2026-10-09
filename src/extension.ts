@@ -77,8 +77,9 @@ export default function (pi: ExtensionAPI) {
 			for (const pending of undelivered(account.name)) {
 				let text: string;
 				try {
-					text = pointer(account.name, pending.message);
-					quarantined = needsCare(readRaw(account.name, pending.message));
+					const raw = readRaw(account.name, pending.message);
+					text = pointer(account.name, pending.message, raw);
+					quarantined = needsCare(raw);
 				} catch (error) {
 					// The index points at a file that is not there. Marking it delivered stops a
 					// poison entry from wedging the watcher on every poll; the user is told.

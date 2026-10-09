@@ -9,7 +9,8 @@ and a fixture mail source. The wake is not built yet.
 
 ## 1. What it is
 
-The ears. Pi watches a mailbox and turns the agent when mail arrives, handing over **a pointer to
+The ears. The agent has a mailbox of its own, and mail reaches it because somebody cc'd the
+agent on a thread or forwarded it a message. Pi turns the agent when that mail arrives, handing over
 the message**, never a summary of it. The agent opens the message itself.
 
 The gap it closes: mail reaches an agent today only when a human copies it there. The agent cannot
@@ -81,38 +82,37 @@ Consequences to design around, not to hide:
 - **The wake payload is a pointer**: sender, subject, received time, account and the spool file to
   read. No body. The body is one `read` away, and bodies in the transcript are permanent.
 
-## 5. Providers — Outlook first
+## 5. Intake: an address the agent owns, with Graph as an option
 
-Outlook is the first real target, because a person Andrei works with needs it (2026-10-09) — so the
-OAuth path is designed in now rather than bolted on later. That means **Microsoft Graph**:
+**The front door is an email address the agent owns.** You cc the agent on a thread, or forward it a
+message, and the fetcher reads that mailbox over IMAP. Chosen because it is the only route with no app
+registration, no tenant, no consent and no client on the machine — and because the sender's provider
+stops mattering: whatever anyone ccs or forwards from arrives as mail, so one adapter covers Outlook,
+Gmail, Fastmail, Proton Bridge, self-hosted and a corporate Exchange mailbox.
 
-- **Delta on one folder, bounded by a date.** `GET /me/mailFolders/inbox/messages/delta` accepts
-  `$filter=receivedDateTime ge {value}` and returns a `deltaLink` that *is* the sync position —
-  which is what the source cursor wants to be. The date bound matters: without it a first run copies
-  an entire mailbox to disk, which is slow and none of our business.
-- **The message is fetched as MIME.** `GET /me/messages/{id}/$value` returns the message as it
-  arrived, so envelope parsing, the quarantine decision and the spool format are the same code every
-  other provider goes through.
-- **Device code flow, public client.** No client secret and no redirect URI: `npm run mail:auth`
-  prints a code, the user signs in wherever they like, and the process polls. The refresh token is
-  written beside the spool for that account and refreshed when it is close to expiring. `Mail.Read`
-  and `offline_access` are the only scopes.
-- **One `clientId` per account**, so somebody else can register their own app and keep their own IT
-  in charge of consent — for a mailbox in another tenant that is the better arrangement.
-- **The wall is consent, not code.** A tenant that does not let users consent to apps needs an
-  administrator to grant it once. That is a go-to-market fact, and it is why bringing your own app
-  matters.
+- **The mailbox is the user's to choose.** A new Gmail per agent is easiest: free, and app passwords
+  still work for IMAP with 2-Step Verification on — no Cloud project, no consent screen, no
+  verification review, no administrator.
+- **Nothing is ever modified.** No Seen, no moves, no deletes: the mailbox looks untouched, which is
+  what makes it safe to point at an address somebody cares about.
+- **cc beats forward.** A forward rewrites the envelope — the real sender and the thread survive only
+  in a quoted block — while a cc preserves both. originalSender() recovers the usual top-quoted From:
+  when a message is a forward, so the pointer names the actual author instead of the forwarder. It is
+  a heuristic, and says nothing rather than guessing.
+- **The corporate case is a smaller ask, not no ask.** An Exchange Online tenant created since 2021 has
+  automatic external forwarding off by default, and admins can block external inbox rules (5.7.520),
+  so a corporate user forwards by hand or asks their admin to allow it — "let me forward mail to my
+  assistant's address" rather than "approve an app that can read my whole mailbox".
 
-**IMAP is the generalisation, not v1.** It would cover Gmail, Fastmail, Proton Bridge, self-hosted
-and anything else in one adapter, but nothing needs it yet, so it is written down rather than built.
+**Graph remains the other bargain**: read your own Microsoft mailbox directly, see everything, and
+obtain an app registration for it (provider "graph", device code sign-in, a since date to bound the
+first sync). Better for someone who can get consent and wants the whole mailbox rather than what they
+hand over. IMAP needs none of that and is the front door.
 
-**The adapter is two calls** — `listNew(cursor) → { envelopes, cursor }` and `fetch(id) → raw
-message` — with a cursor the adapter defines and nobody else interprets: the fetcher stores whatever
-comes back. Adding a provider means writing those two and nothing else.
-
-The first live account is Andrei's personal mailbox, and **its contents are not to be read, explored
-or ingested** — it is a test target. Development runs against fixtures and a stubbed Graph, so no
-check depends on anybody reading his mail.
+**The adapter is still two calls** — listNew(cursor) -> { envelopes, cursor } and fetch(id) -> raw
+message, plus an optional close() — and the cursor belongs to the provider: fixture keeps the newest
+date it saw, Graph keeps a deltaLink, IMAP keeps uidValidity plus the highest UID and starts again when
+the server rebuilds the mailbox.
 
 ## 6. Trust
 
@@ -172,14 +172,19 @@ the RPC test turns it on, a test being unable to type a command.
   model, no session. **Proven live.** `scripts/live-test.mjs` is written
   for that — drive a real pi over RPC, settle it, spool a message, watch for a turn with no prompt
   behind it — and passes: on 2026-10-09 the agent settled at 3.6 s, a message reached the spool at 13.1 s, and at 13.4 s a turn started with no prompt behind it carrying `[email] Dana Whitfield <dana@example.com> · Q3 rollout needs a decision`.
-- **M3 — the Outlook provider. Built, unproven against Microsoft.** `src/graph.ts` (delta on a folder
-  bounded by `receivedDateTime ge`, paging followed with an unfinished page kept as the cursor,
-  `@removed` entries skipped, MIME fetched through `$value`), `src/microsoft-auth.ts` (device code
-  sign-in, a token store beside the spool, refresh when close to expiring) and `scripts/mail-auth.ts`
-  for the one-time sign-in. `scripts/graph-check.ts` drives all of it against a stubbed Graph — 12
-  checks, no credentials, no network. **Not yet proven: that Microsoft accepts the app registration,
-  the scopes and the sign-in.** That needs a real Entra app and a real mailbox, which is Andrei's to
-  create and connect.
+- **M3 — the front door. Built, unproven against a real mailbox.** src/imap.ts owns the connection
+  across passes; the cursor is uidValidity plus the highest UID, and a changed uidValidity starts the
+  mailbox over rather than trusting stale UIDs; a first pass takes the newest 50 so a new mailbox shows
+  something without copying a stranger's history; nothing is ever marked read, moved or deleted. Plus
+  originalSender() for forwarded mail. scripts/imap-check.ts drives it against a stubbed server — 17
+  checks, no credentials, no network. **Not yet proven: that a real Gmail account accepts an app
+  password and that mail arrives.** That needs a mailbox and its password, which is Andrei's to create.
+- **M3b — the Outlook provider. Built, unproven against Microsoft.** src/graph.ts (delta on a folder
+  bounded by receivedDateTime ge, paging followed with an unfinished page kept as the cursor, @removed
+  entries skipped, MIME fetched through $value) and src/microsoft-auth.ts (device code sign-in, token
+  store beside the spool). scripts/graph-check.ts and scripts/auth-check.ts drive both against stubs.
+  **Not yet proven: that Microsoft accepts an app registration, the scopes and the sign-in** — which
+  needs a tenant Andrei does not yet have, and is no longer on the path to a working mailbox.
 - **M4 — catch-up reporting.** What the agent is told after downtime: the newest *k* messages and
   how many were skipped. Today, turning on a watch with a backlog delivers every message in it.
 - **M5 — always-on deployment.** The fetcher as a supervised process (detached from a session, or a

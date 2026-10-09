@@ -63,6 +63,27 @@ claims:
     evidence: ["user: Andrei Li, 2026-10-09 — \"Lets go with your recommendation, and then have this project be symlinked so that pi recognizes this local version as the installed version.\"", "command: cmd //c \"rmdir node_modules\" then npm install --no-audit --no-fund → 'added 124 packages in 9s', package-lock.json written; the pi install at C:/Users/liand/.pi/agent/install/releases/1.1.0/node_modules was left intact (78 entries)", "command: pi install C:/Coding/pi-email-listener → installed; pi list shows '..\\..\\..\\..\\Coding\\pi-email-listener → C:\\Coding\\pi-email-listener'"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
+  - id: c9
+    text: "The front door is an email address the agent owns: the user ccs the agent on a thread or forwards it a message, and the fetcher reads that mailbox over IMAP. Chosen after the alternatives were measured — Graph needs an app registration in a tenant a personal account cannot create, a client's local store only holds what that client synced on that machine, and Outlook's COM automation is unsupported in new Outlook and ceases with classic. The decisive property is that the sender's provider stops mattering: one adapter covers Outlook, Gmail, Fastmail, Proton Bridge and corporate Exchange, and nobody has to approve anything."
+    status: user-stated
+    support: 0.9
+    evidence: ["user: Andrei Li, 2026-10-09 — \"Yes lets make the agent email the front door.\"", "user: Andrei Li, 2026-10-09 — \"What if instead, we made an easy way for users to forward emails to an agent email that has none of these restrictions?\"", "file: src/imap.ts — the IMAP source, which never marks a message read, never deletes and never moves; the mailbox looks untouched", "file: C:/Coding/pi-email-listener/docs/wiki/wiki/gotchas/gotcha-microsoft-mailbox-access.md — the four routes and why three were rejected"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c10
+    text: "Each user's agent gets its own new Gmail account, rather than a mailbox the user already reads. That is what keeps the route free of app registrations: Gmail app passwords still work for IMAP, requiring only 2-Step Verification on that account, and the mailbox is created for the purpose rather than borrowed from somebody's personal correspondence."
+    status: user-stated
+    support: 0.9
+    evidence: ["user: Andrei Li, 2026-10-09 — \"New gmail per user/agent.\"", "source: support.google.com/mail/answer/185833 — app passwords require 2-Step Verification and work over IMAP at imap.gmail.com:993, with no Cloud project and no consent screen"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c11
+    text: "No gate still holds, and it holds for cc'd threads too: the volume consequence was put to Andrei directly — a thread that ccs the agent produces a turn per reply, so a twenty-message thread is twenty turns — and he confirmed every message may turn the agent. Batching and suppression remain rejected."
+    status: user-stated
+    support: 0.9
+    evidence: ["user: Andrei Li, 2026-10-09 — \"The agent can turn for every email, thats totally fine.\" (asked after being told that a cc'd thread produces one turn per reply)"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
 
 ---
 

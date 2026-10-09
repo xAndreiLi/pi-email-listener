@@ -81,7 +81,8 @@ mailbox ──▶ fetcher (always on, no pi) ──▶ spool of files ──▶ 
 
 | File | Owns |
 |---|---|
-| `src/source.ts` | A provider adapter as two calls: `listNew(cursor) → { envelopes, cursor }` and `fetch(id) → raw message`. `fixtureSource` reads a directory of `.eml` files. |
+| `src/source.ts` | A provider adapter as two calls: `listNew(cursor) → { envelopes, cursor }` and `fetch(id) → raw message`, plus an optional `close()` for a source that holds a connection. `fixtureSource` reads a directory of `.eml` files. |
+| `src/imap.ts` | The front door: a mailbox the agent owns, read over IMAP with app passwords. Cursor is `uidValidity` plus the highest UID, resets when the server rebuilds, first pass takes the newest 50, and nothing is ever marked read, moved or deleted. |
 | `src/graph.ts` | Microsoft Graph: delta on one folder bounded by `receivedDateTime ge`, paging, MIME through `$value`. See [the Graph page](microsoft-graph-source.md). |
 | `src/microsoft-auth.ts` | The device code sign-in and the token store, refreshed when close to expiring. |
 | `src/spool.ts` | The layout: raw message, `index.jsonl`, `cursor.json`, `delivered.json` per account. Store never overwrites an existing file. |
@@ -113,6 +114,7 @@ a rewrite. Andrei accepted the seam with that reasoning ("I like the recommendat
 
 ## Not built yet
 
-IMAP (the generalisation to Gmail and everything else), reconnect and backoff, and catch-up
-reporting when a watch is turned on over a large backlog — today that delivers every undelivered
-message.
+A reply path from the agent's own address (the address makes it possible; nothing sends today), real
+reconnect and backoff around a dropped IMAP connection, catch-up reporting when a watch is turned on
+over a large backlog, and the `Fwd:` heuristic is deliberately shallow — it recovers the usual
+top-quoted `From:` line and nothing more.

@@ -26,6 +26,8 @@ export interface MailSource {
 	listNew(cursor: Cursor | undefined): Promise<{ envelopes: Envelope[]; cursor: Cursor }>;
 	/** The message exactly as it arrived. */
 	fetch(id: string): Promise<string>;
+	/** For a source that holds a connection: let it go. */
+	close?(): Promise<void>;
 }
 
 /**
@@ -70,6 +72,32 @@ export function envelopeOf(raw: string): Envelope {
 		cc: parseList(headers.cc),
 		subject: headers.subject ?? "",
 	};
+}
+
+/**
+ * Who actually wrote the message, when it reached this mailbox as a forward.
+ *
+ * A forward rewrites the envelope: the top-level From is the person who forwarded it, and the real
+ * sender survives only as a quoted header block in the body. Every mail client writes that block
+ * differently, so this is a heuristic — it recovers the usual Outlook and Gmail shapes, and returns
+ * nothing rather than guessing when it cannot.
+ */
+export function originalSender(raw: string, envelope: Envelope): Address | undefined {
+	if (!/^\s*(fwd?|fw|wg)\s*:/i.test(envelope.subject)) return undefined;
+	const body = bodyOf(raw);
+	// A quoted header block: "From: …" at the start of a line, followed by another header line.
+	const match = body.match(/^[ \t>]*From:[ \t]*(.+)$/im);
+	if (!match?.[1]) return undefined;
+	const candidate = parseAddress(match[1].trim());
+	if (!candidate.address.includes("@")) return undefined;
+	// The forwarder repeating their own address is not the original sender.
+	if (candidate.address.toLowerCase() === envelope.from.address.toLowerCase()) return undefined;
+	return candidate;
+}
+
+function bodyOf(raw: string): string {
+	const [, ...rest] = raw.split(/\r?\n\r?\n/);
+	return rest.join("\n\n");
 }
 
 function parseHeaders(raw: string): Record<string, string> {
