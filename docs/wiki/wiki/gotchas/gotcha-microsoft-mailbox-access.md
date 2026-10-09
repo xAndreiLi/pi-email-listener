@@ -49,6 +49,13 @@ claims:
     evidence: ["source: support.mozilla.org question 1366732 — 'I have found that folder contents are not synchronized unless the folder is opened' with offline sync and all-folders settings enabled", "source: support.his.com KB 709 — offline use is configured per folder under Synchronization & Storage → Advanced, and can be limited by age or size", "source: source-docs.thunderbird.net folder storage — each folder is an mbox file (no extension) plus a Mork `.msf` database of headers, so the messages are plain text but the format is an internal one", "unverified: whether the mbox can be read while Thunderbird is running, and how compaction rewriting the file interacts with a reader tracking a byte offset — a reader would have to dedupe by Message-ID rather than by position"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
+  - id: c6
+    text: "An agent with its own mail address is the one intake route that needs no app registration and no tenant consent at all, because the mailbox being read is one the agent's owner chose and controls. Gmail app passwords still work in 2026 for exactly this: a 16-character password, created once with 2-Step Verification on, used with imap.gmail.com on port 993 — no Cloud project, no OAuth consent screen, no verification review, and no administrator. It also makes the sender's provider irrelevant: whatever the user forwards from, the message arrives as mail, so one IMAP adapter covers Outlook, Google, Fastmail, Proton Bridge and any other host instead of one adapter each. Two costs are real: an Exchange Online tenant created since 2021 has automatic forwarding to external recipients off by default (AutoForwardingMode 'Off', with 5.7.520 rejections), so a corporate user may be limited to forwarding by hand or to asking their admin to allow it; and a forward rewrites the envelope — the real sender and thread live in the quoted body — whereas cc'ing the agent preserves them exactly."
+    status: verified
+    support: 0.8
+    evidence: ["source: support.google.com/mail/answer/185833 — 'An app password is a 16-digit passcode that gives a less secure app or device permission to access your Google Account. App passwords can only be used with accounts that have 2-Step Verification turned on'; created at myaccount.google.com/apppasswords", "source: learn.microsoft.com Set-HostedOutboundSpamFilterPolicy — AutoForwardingMode 'Automatic: This value is the default... In 2021, the value changed to Off for new organizations and for existing organizations that weren't actively using the Automatic value'", "source: learn.microsoft.com 'Control external email forwarding and fix 5.7.520 errors' — admins can block inbox rules that forward to external recipients, which rejects with 5.7.520", "file: src/source.ts — the cursor comment already names IMAP's shape (UIDVALIDITY plus the last UID), so this provider needs no new seam"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
 ---
 
 ## The wall, stated plainly
@@ -77,7 +84,9 @@ IMAP route needs the same registration. There is no credential-only way in.
 2. **Get your own tenant** (Azure free signup, or the Microsoft 365 Developer Program sandbox).
 3. **Read a client's local store instead** ([c5](#c5)) — no registration of ours at all, and one
    reader covers many providers, but it only sees what that client synced on that machine.
-4. **Do not go to Microsoft for the first live mailbox at all** — Google imposes no such tenant
+4. **Give the agent an address of its own and let mail be sent to it** ([c6](#c6)) — no
+   registration, no consent, no client, and the sender's provider stops mattering.
+5. **Do not go to Microsoft for the first live mailbox at all** — Google imposes no such tenant
    structure on an individual, which is why the Gmail path may prove the shorter route to a
    working end-to-end demo even though Outlook is the destination.
 

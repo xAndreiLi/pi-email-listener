@@ -4,3 +4,4 @@
 {"ts":"2026-10-09T10:41:25.156Z","actor":"agent","op":"wiki.finalize","action":"updated","subject":"architecture/microsoft-graph-source.md","outcome":"ok"}
 {"ts":"2026-10-09T10:44:15.210Z","actor":"agent","op":"wiki.finalize","action":"updated","subject":"architecture/microsoft-graph-source.md","outcome":"ok"}
 {"ts":"2026-10-09T10:49:30.123Z","actor":"agent","op":"wiki.finalize","action":"updated","subject":"gotchas/gotcha-microsoft-mailbox-access.md","outcome":"ok"}
+{"ts":"2026-10-09T10:55:00.942Z","actor":"agent","op":"wiki.finalize","action":"updated","subject":"gotchas/gotcha-microsoft-mailbox-access.md","outcome":"ok"}

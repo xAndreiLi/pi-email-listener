@@ -24,3 +24,6 @@
 ## [2026-10-09] finalize | Added the checked answer to Andrei's question about hooking a user's own mail client: it does not avoid the tenant wall. Outlook COM automation is unsupported in new Outlook and ceases with classic Outlook, with no replacement for external desktop processes; Thunderbird's own users hit 'need admin approval'; Thunderbird's maildir store is incomplete and off by default. The route that does survive: an app registered in any tenant, allowing personal Microsoft accounts, can be authorised by a personal outlook.com mailbox with the user's own consent — so the test account still works.
 - Updated: gotchas/gotcha-microsoft-mailbox-access.md
 
+## [2026-10-09] finalize | Answered whether a local client makes this more general, and the answer is sharper than expected: a client store generalises across providers but not across machines, because it only ever sees what that client synced — Thunderbird users report folders other than the inbox staying server-side even with offline sync enabled, and the store is an internal mbox plus Mork index. Recorded alongside the wall, with the two routes' opposite failure modes.
+- Updated: gotchas/gotcha-microsoft-mailbox-access.md
+
