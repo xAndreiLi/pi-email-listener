@@ -1,0 +1,9 @@
+# node_modules is a junction to the pi install for local development; it must never be packed.
+node_modules/
+*.log
+
+# Mail and credentials must never reach the repository, not even by accident.
+.mail/
+**/*.eml
+.env
+.env.*

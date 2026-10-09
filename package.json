@@ -1,0 +1,40 @@
+{
+	"name": "pi-email-listener",
+	"version": "0.1.0",
+	"description": "The ears: pi watches a mailbox and wakes the agent when a message deserves attention, handing over a pointer to the message rather than a summary.",
+	"type": "module",
+	"license": "MIT",
+	"author": "xAndreiLi",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xAndreiLi/pi-email-listener.git"
+	},
+	"homepage": "https://github.com/xAndreiLi/pi-email-listener#readme",
+	"bugs": {
+		"url": "https://github.com/xAndreiLi/pi-email-listener/issues"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"keywords": [
+		"pi-package",
+		"pi",
+		"email",
+		"mailbox",
+		"imap",
+		"outlook",
+		"agent-wake"
+	],
+	"peerDependencies": {
+		"@earendil-works/pi-ai": "*",
+		"@earendil-works/pi-coding-agent": "*",
+		"typebox": "*"
+	},
+	"devDependencies": {
+		"@earendil-works/pi-ai": "1.1.0",
+		"@earendil-works/pi-coding-agent": "1.1.0",
+		"@types/node": "^22.19.19",
+		"jiti": "^2.7.0",
+		"typebox": "^1.3.27"
+	}
+}
