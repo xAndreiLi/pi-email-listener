@@ -1,0 +1,7 @@
+{
+	"provider": "typesafe",
+	"wikiRoot": "docs/wiki",
+	"capture": { "cadence": "manual" },
+	"sync": { "onSessionStart": "check" },
+	"search": { "engine": "auto" }
+}
