@@ -2,10 +2,10 @@
 
 **Status: the front door, the setup wizard and the always-on service are built.** A mailbox the agent
 owns is read over IMAP, every message turns the agent in a pi session, and the wake is a pointer
-rather than a summary. `/email-setup` walks a person through creating that mailbox, opening the pages
-they need, verifying the login and starting the fetcher in the background. Verified offline and live
-against pi over RPC. Not yet run against a real mailbox — that needs an account and an app password,
-which is yours to create.
+rather than a summary. `/email-setup` gives the agent an address of its own in one step, or walks a
+person through connecting a mailbox they have. Verified offline and live against pi over RPC, and the
+login and a first pass have run against a real AgentMail inbox. A real message arriving is the next
+thing to prove.
 
 ## The idea
 
@@ -47,17 +47,25 @@ in that session.
 
 ## Set it up
 
-In a pi session, run **`/email-setup`**. It asks two questions, opens the two pages you need in a
-browser, checks the login before writing anything, and offers to keep the fetcher running in the
-background.
+In a pi session, run **`/email-setup`** and pick **Give the agent its own address**. Type a name, and
+the agent has `<name>@agentmail.to` on the spot — no sign-up, no card, no password to make. The
+wizard checks the login and offers to keep the fetcher running in the background.
 
-You will need, once:
+What that address is:
 
-- **A mailbox for the agent.** A fresh Gmail is the easiest: free, and it still offers app passwords.
-  Turn on 2-Step Verification, then create an app password — 16 characters, no OAuth, no Cloud
-  project, no consent screen. The wizard opens both pages for you.
-- **The app password.** It is typed into the terminal, so it is visible on screen while you type it;
-  it is written to `<agent dir>/pi-email-listener.json` and nowhere else.
+- **Receive-only.** It is created with no human attached, so [AgentMail](https://agentmail.to) itself
+  refuses to send from it — on top of this package having no send path at all.
+- **Its key is the inbox.** The key is written to `<agent dir>/pi-email-listener.json` and nowhere
+  else, and AgentMail cannot recover it. Claiming the inbox at <https://console.agentmail.to/claim>
+  makes it recoverable, and also lets it send — so only if you want that.
+- **Two folders are watched**, the inbox and AgentMail's Spam folder, so a message filtered as spam
+  still reaches the agent.
+- **Free.** AgentMail's free tier, no card. An account nobody has claimed holds one inbox.
+
+Prefer a mailbox of your own? The same command sets up a new Gmail — it opens the signup and
+app-password pages, and needs 2-Step Verification on — or any IMAP mailbox with a password. Either
+password is typed into the terminal, so it is visible while you type it, and is written to the same
+file and nowhere else.
 
 Then ask someone to cc the agent, or forward it a message, and run `/email-watch` in the session that
 should be woken.
@@ -112,7 +120,8 @@ with a link or an attachment cannot reach `bash`, `edit` or `write`.
 
 ## What works today
 
-- **Sources**: `imap` (a mailbox the agent owns — the front door), `graph` (read your own Microsoft
+- **Sources**: `imap` (a mailbox the agent owns — the front door, including the AgentMail address
+  `/email-setup` creates), `graph` (read your own Microsoft
   mailbox directly, if you can get an app registration), and `fixture` (a directory of `.eml` files,
   for testing with no credentials).
 - **Spool**: every new message as a raw `.eml` plus an append-only `index.jsonl` line per account,

@@ -158,7 +158,7 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.registerCommand("email-setup", {
-		description: "Set up the mailbox the agent reads (about three minutes)",
+		description: "Give the agent an email address of its own, or connect a mailbox it reads",
 		handler: async (_args, commandCtx) => {
 			ctx = commandCtx as unknown as Ctx;
 			const ui = ctx.ui;

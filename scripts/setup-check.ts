@@ -7,13 +7,13 @@
  * So the questions, the order, and what is written are all asserted here instead.
  */
 
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const root = mkdtempSync(join(tmpdir(), "pi-email-listener-setup-"));
 
-const { runSetup } = await import("../src/setup.ts");
+const { runSetup, signUpAgentMail } = await import("../src/setup.ts");
 
 let failures = 0;
 function check(what: string, ok: boolean) {
@@ -30,17 +30,20 @@ interface Script {
 function stubUi(script: Script) {
 	const notices: string[] = [];
 	const asked: string[] = [];
+	const offered: string[] = [];
 	const opened: string[] = [];
 	const inputs = [...(script.inputs ?? [])];
 	const confirms = [...(script.confirms ?? [])];
 	return {
 		notices,
 		asked,
+		offered,
 		opened,
 		ui: {
 			notify: (message: string) => void notices.push(message),
-			select: async (title: string) => {
+			select: async (title: string, options: string[]) => {
 				asked.push(`select:${title}`);
+				offered.push(...options);
 				return script.select;
 			},
 			input: async (title: string) => {
@@ -155,6 +158,95 @@ await runSetup(own.ui, {
 check("an existing mailbox is asked for its server", ownHost === "imap.fastmail.com");
 const ownWritten = JSON.parse(readFileSync(ownPath, "utf8")) as { accounts: { name: string; host: string }[] };
 check("and is stored under a name taken from the address", ownWritten.accounts[0]?.name === "dana" && ownWritten.accounts[0]?.host === "imap.fastmail.com");
+
+// ---------------------------------------------------------------- an address made on the spot
+
+const AGENTMAIL = "Give the agent its own address (instant, no sign-up)";
+const KEY = "am_us_stub-key-that-must-never-be-shown";
+const made = (username: string) => ({ inboxId: `${username}@agentmail.to`, apiKey: KEY });
+type Written = { accounts: { name: string; provider: string; host?: string; user?: string; password?: string; folder?: string }[] };
+const read = (file: string) => JSON.parse(readFileSync(file, "utf8")) as Written;
+
+const amPath = join(root, "agentmail.json");
+const am = stubUi({ select: AGENTMAIL, inputs: ["taken", "pm-assistant"], confirms: [false] });
+const tried: string[] = [];
+const checked: { mailbox?: unknown; writtenFirst: boolean }[] = [];
+await runSetup(am.ui, {
+	path: amPath,
+	open: () => {},
+	start: () => ({ pid: 1, alive: true, logPath: "log" }),
+	signUp: async (username: string) => {
+		tried.push(username);
+		if (username === "taken") throw new Error("Username is already taken");
+		return made(username);
+	},
+	verify: async (options: Record<string, unknown>) => {
+		checked.push({ mailbox: options.mailbox, writtenFirst: existsSync(amPath) });
+		return { messages: 0 };
+	},
+});
+const amAccounts = read(amPath).accounts;
+const inbox = amAccounts.find((one) => one.name === "pm-assistant");
+check("the new address is the first thing offered", am.asked[0]?.startsWith("select:") === true && am.offered[0] === AGENTMAIL);
+check("a refused name is reported in AgentMail's words, and another is asked for", tried.join(",") === "taken,pm-assistant" && am.notices.some((line) => line.includes("Username is already taken")));
+check("the address is read over IMAP like any other mailbox", inbox?.provider === "imap" && inbox.host === "imap.agentmail.to" && inbox.user === "pm-assistant@agentmail.to" && inbox.folder === "INBOX");
+check("its Spam folder is watched as well", amAccounts.some((one) => one.name === "pm-assistant-spam" && one.folder === "Spam"));
+check("the key is stored as the password of both", amAccounts.length === 2 && amAccounts.every((one) => one.password === KEY));
+check("both folders are checked, and only once the key is safely written", checked.length === 2 && checked[1]?.mailbox === "Spam" && checked.every((one) => one.writtenFirst));
+check("the key never appears in anything said on screen", am.notices.every((line) => !line.includes(KEY)));
+check("the last thing it says is the address to cc", am.notices.at(-1)?.includes("pm-assistant@agentmail.to") === true);
+
+const keptPath = join(root, "kept.json");
+const kept = stubUi({ select: AGENTMAIL, inputs: ["fresh"], confirms: [false] });
+await runSetup(kept.ui, {
+	path: keptPath,
+	open: () => {},
+	signUp: async (username: string) => made(username),
+	verify: async () => {
+		throw new Error("connection reset");
+	},
+});
+check("a failed first login keeps the account, because the key cannot be fetched again", read(keptPath).accounts.length === 2 && kept.notices.some((line) => line.includes("connection reset")));
+
+const twicePath = join(root, "twice.json");
+writeFileSync(twicePath, JSON.stringify({ accounts: [{ name: "suruiling", provider: "imap", host: "imap.agentmail.to", user: "suruiling@agentmail.to", password: "x", folder: "INBOX" }], pollSeconds: 30 }));
+let twiceSignUps = 0;
+const twice = stubUi({ select: AGENTMAIL, inputs: ["another"], confirms: [false] });
+await runSetup(twice.ui, {
+	path: twicePath,
+	open: () => {},
+	signUp: async (username: string) => {
+		twiceSignUps++;
+		return made(username);
+	},
+	verify: async () => ({ messages: 0 }),
+});
+check("an address that already exists is named before a second one is made", twice.asked.some((question) => question.startsWith("confirm:") && question.includes("suruiling@agentmail.to")));
+check("and declining makes nothing", twiceSignUps === 0 && read(twicePath).accounts.length === 1);
+
+const lockedDir = join(root, "locked");
+mkdirSync(lockedDir);
+const lockedPath = join(lockedDir, "pi-email-listener.json");
+writeFileSync(lockedPath, JSON.stringify({ accounts: [], pollSeconds: 30 }));
+chmodSync(lockedPath, 0o444);
+const locked = stubUi({ select: AGENTMAIL, inputs: ["rescued"], confirms: [false] });
+await runSetup(locked.ui, { path: lockedPath, open: () => {}, signUp: async (username: string) => made(username), verify: async () => ({ messages: 0 }) });
+chmodSync(lockedPath, 0o644);
+const rescue = `${lockedPath}.rescued.agentmail.json`;
+check("a config that cannot be written does not lose the key", existsSync(rescue) && readFileSync(rescue, "utf8").includes(KEY));
+check("it says where the key went, without showing it", locked.notices.some((line) => line.includes(rescue)) && locked.notices.every((line) => !line.includes(KEY)));
+
+// The sign-up call itself, against AgentMail's documented response and error shapes.
+let sent: { url?: string; body?: Record<string, unknown> } = {};
+const answers = async (status: number, body: unknown) =>
+	(async (url: string | URL | Request, init?: RequestInit) => {
+		sent = { url: String(url), body: JSON.parse(String(init?.body)) };
+		return new Response(JSON.stringify(body), { status });
+	}) as typeof fetch;
+const signed = await signUpAgentMail("pm-assistant", await answers(200, { organization_id: "o", inbox_id: "pm-assistant@agentmail.to", api_key: KEY }));
+check("the sign-up sends the name and no human email, so the inbox is receive-only", sent.url === "https://api.agentmail.to/v0/agent/sign-up" && sent.body?.username === "pm-assistant" && !("human_email" in (sent.body ?? {})) && signed.apiKey === KEY);
+const refusal = await signUpAgentMail("x", await answers(400, { name: "ValidationError", errors: [{ path: ["username"], message: "Username is already taken" }], fix: "Choose another username" })).catch((error: Error) => error.message);
+check("a refusal comes back in AgentMail's own words", refusal === "Username is already taken — Choose another username");
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nall checks passed");
 process.exitCode = failures ? 1 : 0;
