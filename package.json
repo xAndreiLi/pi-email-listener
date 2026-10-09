@@ -25,6 +25,11 @@
 		"outlook",
 		"agent-wake"
 	],
+	"scripts": {
+		"fetch": "jiti scripts/fetch.ts",
+		"fetch:once": "jiti scripts/fetch.ts --once",
+		"self-check": "jiti scripts/self-check.ts"
+	},
 	"peerDependencies": {
 		"@earendil-works/pi-ai": "*",
 		"@earendil-works/pi-coding-agent": "*",

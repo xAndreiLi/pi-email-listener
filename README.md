@@ -1,30 +1,70 @@
 # pi-email-listener
 
-**Status: design stage.** Nothing here runs yet. This repository currently holds the scaffold and the
-plan — [`docs/PLAN.md`](docs/PLAN.md) — and no extension. The plan is not agreed either; its open
-decisions are listed at the bottom of that file.
+**Status: M1 built — the fetcher and the spool. No wake yet.** The design is agreed and written up
+in [`docs/PLAN.md`](docs/PLAN.md); what exists today is the half that talks to a mailbox. Nothing
+here has been pointed at a real mailbox.
 
-The ears. A [pi](https://pi.dev) package that watches a mailbox and wakes an agent when a message
-deserves attention, handing over **a pointer to the message** — sender, subject, thread, file path —
-never a summary of it. The agent reads the message itself.
+The ears. A [pi](https://pi.dev) package that watches a mailbox and turns the agent when mail
+arrives, handing over **a pointer to the message** — who, what, when, and the file to read — never a
+summary of it. The agent opens the message itself.
 
 Sibling to [pi-job-listener](https://github.com/xAndreiLi/pi-job-listener), which does the same for
-long-running processes, and inherits its two rules: wake only when it matters, and deliver a pointer
-rather than a digest.
+long-running processes. It inherits the pointer rule and deliberately drops the gate: there, the
+ambiguous question is whether a process's middle output is worth interrupting for; here, every
+message turns the agent.
 
-## The idea in one paragraph
+## How it is put together
 
-Mail reaches an agent today only when a human copies it there — the human *is* the transport layer
-between their inbox and their agent. For a project manager that inbox is the ecosystem: clients,
-contractors, deadlines, scope changes, blockers. This package takes the human off the transport path
-for **awareness** and leaves them on it for **judgement and replies**. The agent notices what
-arrived, wakes itself in the session the human is already sitting in, and can answer "what does this
-mean for what we were doing?" instead of "you have mail".
+```
+mailbox ──▶ fetcher (always on, no pi) ──▶ spool of files ──▶ extension in a session ──▶ turn
+             OAuth, reconnect, catch-up      .eml + index      opt-in per session
+```
 
-## Install
+The fetcher owns the fragile half — connection, tokens, reconnect, sync position — and its only
+output is files, so it runs with or without a session and is testable with no network. The extension
+owns the wake. Nothing wakes an agent by surprise: a session is only turned by mail once the user has
+set that up in it.
 
-Not installable yet — there is no extension in this repository. It becomes a loadable package at
-milestone M2 in the plan.
+## What works today
+
+- Reads a mailbox through a `MailSource`: `listNew(cursor)` and `fetch(id)`. The only source so far
+  is `fixture`, a directory of `.eml` files — enough to watch the spool fill with no credentials.
+- Stores every new message as a raw `.eml` plus an append-only `index.jsonl` line, per account,
+  under `<agent dir>/mail/<account>/`, with the source's own cursor in `cursor.json`.
+- Re-runs are safe: message ids already in the index are not stored twice, and the cursor means a
+  restart resumes rather than re-reads.
+- One broken account does not stop the others.
+
+## Try it
+
+```bash
+npm run self-check   # 17 assertions, no network, no credentials, no session
+```
+
+For local development, `node_modules` is a junction to your pi install, as in pi-job-listener:
+
+```
+mklink /J node_modules <pi install>\node_modules
+```
+
+Do **not** run `npm install` while that junction is in place — npm would write into the pi install
+it points at. The package resolves its own dependencies from what pi already provides.
+
+To watch it run against a directory of exported `.eml` files, write
+`<agent dir>/pi-email-listener.json`:
+
+```json
+{
+  "accounts": [{ "name": "test", "provider": "fixture", "dir": "C:/path/to/eml-files" }],
+  "pollSeconds": 30
+}
+```
+
+then `npm run fetch` (poll forever) or `npm run fetch:once` (one pass). Both paths can be moved for a
+test with `PI_EMAIL_LISTENER_CONFIG` and `PI_EMAIL_LISTENER_MAIL_DIR`.
+
+A real mailbox needs an OAuth2 provider adapter, which is M3 — and the first live account is
+Andrei's own, connected by him.
 
 ## Licence
 
