@@ -49,6 +49,20 @@ claims:
     evidence: ["reasoning: SMTP queues and retries on the sender's side, which is why a receiving host that is intermittently up is partly workable and why an unavailable one is silently harmful — the failure lands on the sender, days later, as a bounce", "reasoning: an MX record for a residential address needs a stable public IP and an open port 25, neither of which a home connection is obliged to provide"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
+  - id: c6
+    text: "The walls hit on the way to this design are policy, not protocol, and they get taller the closer a design sits to reading somebody's real mailbox: a personal Microsoft account cannot register an app at all, a corporate one needs an administrator's consent even for Mozilla's own client, Google declined to issue an app password for a fresh account with 2-Step Verification properly configured, basic authentication is gone from Outlook.com and Exchange Online IMAP, and a client's local store holds a cache rather than the mailbox. The consequence for design is that a rented address is always a named provider's policy away from breaking, which is the argument for the address being one the user controls."
+    status: verified
+    support: 0.85
+    evidence: ["user: Andrei Li, 2026-10-09 — the agent Gmail account, with 2-Step Verification on and a phone number registered, still refusing app passwords", "source: Microsoft Q&A on Entra portal sign-in for personal accounts; Microsoft's COM automation support statement; support.microsoft.com on removing basic authentication from Outlook.com", "source: bugzilla.mozilla.org 1815715 — Thunderbird users met with 'need admin approval'", "source: support.mozilla.org question 1366732 — folders other than the inbox not stored locally despite offline sync settings", "file: docs/INTAKE.md — the route-by-route table, with what each one rents and who can revoke it"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c7
+    text: "Two counter-options were researched and neither is a free lunch: ForwardEmail's free tier forwards mail but stores nothing, so using it as the agent's mailbox means its paid tier (about three dollars a month, 10 GB, API access, unlimited domains — the protocol it speaks is not stated on that page); and the Gmail API needs a consent screen whose Testing status issues refresh tokens that expire in seven days, while publishing to Production as an external app brings verification requirements — branding, a homepage on a verified domain, a privacy policy. Neither removes the dependence on a provider's terms; both trade it for a bill or for a weekly re-authentication."
+    status: verified
+    support: 0.8
+    evidence: ["source: forwardemail.net/en/pricing — 'Can I send and receive emails with the Free plan? No, the Free plan only supports email forwarding… you cannot send emails directly from your custom domain or store emails on our servers'; the paid tier is 'Enhanced Protection ($3/month)… professional email with sending/receiving capabilities, 10GB storage, and API access'", "source: support.google.com/cloud/answer/10311615 — external production apps need a homepage on a verified domain, a privacy policy, and verification before app branding is displayed", "source: developers.google.com OAuth documentation — a consent screen in Testing status with an external user type issues a refresh token expiring in 7 days"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
 ---
 
 ## The shape
@@ -92,3 +106,5 @@ on it only has to be awake to *collect* it.
   and why three of them were rejected
 - [A passkey-only Gmail refuses app passwords](../gotchas/gotcha-gmail-app-password.md) — the incident
   that makes owning the drop worth the setup
+- `docs/INTAKE.md` in the repository — the full briefing written for Andrei to think with: every route,
+  what each rents, who can revoke it, and the research still missing
