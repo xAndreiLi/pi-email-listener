@@ -111,7 +111,14 @@ export async function runSetup(ui: SetupUi, options: SetupOptions = {}): Promise
 		({ messages } = await verify({ host, user: address, password }));
 	} catch (error) {
 		ui.notify(
-			`That did not work: ${(error as Error).message}\n\nIf Gmail, the usual cause is that 2-Step Verification is off (so no app password exists), or that the ordinary account password was used instead of the app password.`,
+			[
+				`That did not work: ${(error as Error).message}`,
+				"",
+				"The usual causes, in the order worth checking:",
+				"  1. 2-Step Verification is off, so no app password can exist.",
+				"  2. The ordinary account password was used instead of an app password.",
+				"  3. The only second step is a passkey or a security key — Gmail refuses app passwords for those. Adding a phone number or an authenticator app fixes it, and it is also what the app-passwords page itself means by 'the setting you are looking for is not available for your account'.",
+			].join("\n"),
 			"error",
 		);
 		return;
