@@ -21,3 +21,6 @@
 ## [2026-10-09] finalize | Recorded the wall Andrei hit: a personal Microsoft account cannot register an app, because app registrations live in an Entra tenant and outlook.com accounts are routed to 'Microsoft Services' without being members. Since basic authentication against Outlook.com is gone too, IMAP would need the same registration — so every route into a Microsoft mailbox begins with a work or school account in a tenant. The README now says so before the setup steps.
 - Updated: architecture/microsoft-graph-source.md
 
+## [2026-10-09] finalize | Added the checked answer to Andrei's question about hooking a user's own mail client: it does not avoid the tenant wall. Outlook COM automation is unsupported in new Outlook and ceases with classic Outlook, with no replacement for external desktop processes; Thunderbird's own users hit 'need admin approval'; Thunderbird's maildir store is incomplete and off by default. The route that does survive: an app registered in any tenant, allowing personal Microsoft accounts, can be authorised by a personal outlook.com mailbox with the user's own consent — so the test account still works.
+- Updated: gotchas/gotcha-microsoft-mailbox-access.md
+

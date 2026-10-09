@@ -42,6 +42,13 @@ claims:
     evidence: ["file: src/microsoft-auth.ts — the authority is `login.microsoftonline.com/{tenant}/oauth2/v2.0/...` with tenant defaulting to \"common\", which is what admits work and personal accounts through one registration", "file: README.md — the registration step already specifies \"Accounts in any organizational directory and personal Microsoft accounts\"", "command: a placeholder client id reached the live endpoint and was answered with AADSTS50059 (no tenant identified) rather than a rejection of the request shape"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
+  - id: c5
+    text: "The local store of a mail client is a cache, not a copy of the mailbox, so a provider that reads it is scoped to what the client happened to put on disk. Thunderbird's own users report that folders other than the inbox are not stored locally even with 'Keep messages in all folders' and 'Synchronize all messages locally regardless of age' switched on, that a folder has to be opened before it syncs, and that individual folders need their own offline flag under the account's Advanced settings. The inbox is the reliable part, which happens to be where arriving mail lands — but a client-store provider must say plainly that it sees the inbox, not the mailbox, and that anything the client has not synced is invisible to the agent."
+    status: verified
+    support: 0.7
+    evidence: ["source: support.mozilla.org question 1366732 — 'I have found that folder contents are not synchronized unless the folder is opened' with offline sync and all-folders settings enabled", "source: support.his.com KB 709 — offline use is configured per folder under Synchronization & Storage → Advanced, and can be limited by age or size", "source: source-docs.thunderbird.net folder storage — each folder is an mbox file (no extension) plus a Mork `.msf` database of headers, so the messages are plain text but the format is an internal one", "unverified: whether the mbox can be read while Thunderbird is running, and how compaction rewriting the file interacts with a reader tracking a byte offset — a reader would have to dedupe by Message-ID rather than by position"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
 ---
 
 ## The wall, stated plainly
@@ -68,9 +75,20 @@ IMAP route needs the same registration. There is no credential-only way in.
    accounts, and a personal outlook.com mailbox works with the user's own consent. A corporate
    mailbox then needs its own admin to consent — or to register its own app.
 2. **Get your own tenant** (Azure free signup, or the Microsoft 365 Developer Program sandbox).
-3. **Do not go to Microsoft for the first live mailbox at all** — Google imposes no such tenant
+3. **Read a client's local store instead** ([c5](#c5)) — no registration of ours at all, and one
+   reader covers many providers, but it only sees what that client synced on that machine.
+4. **Do not go to Microsoft for the first live mailbox at all** — Google imposes no such tenant
    structure on an individual, which is why the Gmail path may prove the shorter route to a
    working end-to-end demo even though Outlook is the destination.
+
+## Which generalises further
+
+The client store generalises across **providers** — one reader for Microsoft, Google, Fastmail,
+Proton Bridge and any IMAP host — while OAuth generalises across **machines**: it works headless, on a
+server, with the client closed. They fail in opposite directions, so supporting both is not
+redundancy: a client store is the only route for somebody whose tenant allows a known client but
+would never approve a new app registration, and OAuth is the only route for an agent that runs
+where no client does.
 
 ## See also
 
