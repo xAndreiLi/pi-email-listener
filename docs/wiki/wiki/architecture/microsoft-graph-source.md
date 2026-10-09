@@ -50,6 +50,13 @@ claims:
     evidence: ["user: Andrei Li, 2026-10-09 — \"Lets design for outlook in mind, as i have a person who needs it.\"", "file: src/config.ts — AccountConfig carries clientId, tenant, mailbox, folder and since per account", "file: README.md — the corporate-consent note and the recommendation that another tenant register its own app"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
+  - id: c6
+    text: "The sign-in state machine is verified offline even though no Entra app exists yet: the device code flow's four branches (authorization_pending, slow_down, success, refresh) and its failure modes are driven against a stubbed identity platform by `npm run auth-check`, 16 checks. Separately, the request shape has been accepted by the live endpoint — a placeholder client id produced a real `AADSTS50059` answer from login.microsoftonline.com rather than a malformed-request error — and with no stored token, `fetch:once` fails with the one command that fixes it rather than a stack trace."
+    status: verified
+    support: 0.85
+    evidence: ["command: npm run auth-check → 16 checks pass, including 'the sign-in survives a pending and a slow_down before succeeding', 'the device code was requested with the client id and the two scopes', 'an expiring token is refreshed before it is used', 'a rotated refresh token replaces the old one', 'signing in again repairs a corrupted token store'", "command: npm run mail:auth outlook with a placeholder client id → 'invalid_request: AADSTS50059: No tenant-identifying information found…' from the real endpoint, which is Microsoft parsing the request and rejecting the client id rather than the shape", "command: npm run fetch:once with no kept sign-in → 'no stored sign-in for account \"outlook\" — run: npm run mail:auth outlook'"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
 ---
 
 ## What is proven, and what is not

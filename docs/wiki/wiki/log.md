@@ -15,3 +15,6 @@
 - Updated: architecture/microsoft-graph-source.md
 - Updated: decisions/decision-no-gate-and-pointer.md
 
+## [2026-10-09] finalize | Added the offline proof of the sign-in state machine and the two live contacts with Microsoft's endpoint (an AADSTS50059 for a placeholder client id, which shows the request shape is accepted, and the actionable error when no sign-in is stored). The remaining unproven step is a real app registration and consent.
+- Updated: architecture/microsoft-graph-source.md
+
