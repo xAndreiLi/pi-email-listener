@@ -46,6 +46,7 @@ function stubServer(messages: { uid: number; source: string }[], uidValidity = 7
 	const calls: string[] = [];
 	let loggedOut = false;
 	const client = {
+		failNext: 0,
 		mailbox: { uidValidity, exists: messages.length },
 		async connect() {
 			calls.push("connect");
@@ -64,6 +65,10 @@ function stubServer(messages: { uid: number; source: string }[], uidValidity = 7
 		},
 		async fetchAll(range: string, _query: unknown) {
 			calls.push(`fetchAll:${range}`);
+			if (client.failNext > 0) {
+				client.failNext--;
+				throw new Error("connection lost");
+			}
 			const from = Number(range.split(":")[0]);
 			return messages.filter((one) => one.uid >= from).map((one) => ({ uid: one.uid, source: Buffer.from(one.source) }));
 		},
@@ -163,6 +168,26 @@ check("and the pointer says so", pointer("agent", envelope as never, forwarded).
 check("a plain message claims no forwarding", originalSender(raw("Plain"), { ...envelope, subject: "Plain" } as never) === undefined);
 
 // ---------------------------------------------------------------- the connection is ours to close
+
+// A dead connection must not be kept: the next pass has to reconnect rather than fail forever.
+const flaky = stubServer([{ uid: 1, source: raw("After a reconnect") }]);
+const flakySource = imapSource("flaky", {
+	host: "imap.example.com",
+	user: "agent@example.com",
+	password: "app-password",
+	connect: () => flaky.client as never,
+});
+flaky.client.failNext = 1;
+let surfaced = false;
+try {
+	await syncAccount({ ...account, name: "flaky" }, flakySource);
+} catch {
+	surfaced = true;
+}
+check("a dropped connection surfaces as an error rather than silence", surfaced);
+check("the dead client is dropped", flaky.calls.filter((call) => call === "connect").length === 1);
+check("and the next pass connects again", (await syncAccount({ ...account, name: "flaky" }, flakySource)) === 1);
+check("which is the second connect", flaky.calls.filter((call) => call === "connect").length === 2);
 
 await source.close();
 check("closing the source logs out", first.loggedOut());

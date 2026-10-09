@@ -68,6 +68,13 @@ claims:
     evidence: ["command: npm run live → '3.6s agent_settled #1', '13.1s fetcher exited 0', '13.4s agent_start (no prompt behind it — this is the wake)', '13.4s wake message: [email] Dana Whitfield <dana@example.com> · Q3 rollout needs a decision', 'PASS: a spooled message started a turn by itself, carrying the pointer', 973 protocol records"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
+  - id: c8
+    text: "The IMAP source does not keep a dead connection. Any failure inside a mailbox operation drops the client and logs it out best-effort, so the next pass reconnects rather than failing forever on a socket the server has already closed — and the error still reaches the caller, so the failure is visible rather than silent. The interval between passes is still fixed; there is no backoff yet."
+    status: verified
+    support: 0.85
+    evidence: ["file: src/imap.ts — withMailbox() sets the cached client to undefined and logs it out in the catch, then rethrows", "command: npm run imap-check → 'a dropped connection surfaces as an error rather than silence', 'the dead client is dropped', 'and the next pass connects again', 'which is the second connect'"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
 ---
 
 ## Shape
@@ -114,7 +121,7 @@ a rewrite. Andrei accepted the seam with that reasoning ("I like the recommendat
 
 ## Not built yet
 
-A reply path from the agent's own address (the address makes it possible; nothing sends today), real
-reconnect and backoff around a dropped IMAP connection, catch-up reporting when a watch is turned on
-over a large backlog, and the `Fwd:` heuristic is deliberately shallow — it recovers the usual
-top-quoted `From:` line and nothing more.
+A reply path from the agent's own address (the address makes it possible; nothing sends today), backoff
+between passes around a mailbox that keeps failing, catch-up reporting when a watch is turned on over
+a large backlog, and the `Fwd:` heuristic is deliberately shallow — it recovers the usual top-quoted
+`From:` line and nothing more.

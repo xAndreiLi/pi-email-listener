@@ -77,8 +77,19 @@ export function imapSource(account: string, options: ImapOptions): MailSource {
 		const lock = await imap.getMailboxLock(options.mailbox ?? "INBOX");
 		try {
 			return await work(imap);
+		} catch (error) {
+			// A dropped connection looks like any other failure from here, and keeping the dead client
+			// would fail every later pass until the process restarted. Drop it so the next pass
+			// reconnects, and let the caller see what happened.
+			if (client === imap) client = undefined;
+			void imap.logout().catch(() => {});
+			throw error;
 		} finally {
-			lock.release();
+			try {
+				lock.release();
+			} catch {
+				// The connection is gone; there is nothing left to release.
+			}
 		}
 	}
 

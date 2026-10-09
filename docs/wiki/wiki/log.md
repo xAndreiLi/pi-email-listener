@@ -30,3 +30,8 @@
 ## [2026-10-09] finalize | Checked and recorded the agent-address route Andrei proposed: it is the only intake model with no app registration, no tenant and no consent, because the mailbox read is one its owner controls — and Gmail app passwords still work for IMAP, so that mailbox needs no OAuth either. It also makes the sender's provider irrelevant, so one adapter replaces one-per-provider. The two costs recorded alongside: external auto-forwarding is off by default in Exchange Online tenants created since 2021 (so a corporate user may be down to manual forwarding), and a forward rewrites the envelope while cc'ing preserves it.
 - Updated: gotchas/gotcha-microsoft-mailbox-access.md
 
+## [2026-10-09] finalize | Recorded the pivot Andrei proposed: the front door is now an address the agent owns, read over IMAP, because it is the only route with no app registration, no tenant, no consent and no client — and because it makes the sender's provider irrelevant, so one adapter covers everything. Also recorded that each agent gets its own new Gmail, and that the no-gate decision was re-confirmed knowing a cc'd thread turns the agent once per reply. Architecture and gotcha pages updated to match.
+- Updated: decisions/decision-no-gate-and-pointer.md
+- Updated: architecture/architecture-spool-and-wake.md
+- Updated: gotchas/gotcha-microsoft-mailbox-access.md
+
