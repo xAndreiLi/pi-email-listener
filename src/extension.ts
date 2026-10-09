@@ -11,7 +11,9 @@
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { loadConfig } from "./config.ts";
+import { loadConfig, readConfigFile } from "./config.ts";
+import { serviceState, serviceStatusText, startService, stopService } from "./service.ts";
+import { runSetup } from "./setup.ts";
 import { markDelivered, needsCare, pointer, readRaw, undelivered } from "./wake.ts";
 
 /** Tools a turn triggered by a stranger's mail must not reach for. */
@@ -23,7 +25,12 @@ const AUTOSTART = (process.env.PI_EMAIL_LISTENER_AUTOSTART ?? "") !== "";
 /** Structural view of the bits of ExtensionContext this extension needs. */
 interface Ctx {
 	isIdle(): boolean;
-	ui?: { notify(message: string, level?: string): void };
+	ui?: {
+		notify(message: string, level?: string): void;
+		input?(title: string, placeholder?: string): Promise<string | undefined>;
+		confirm?(title: string, message: string): Promise<boolean>;
+		select?(title: string, options: string[]): Promise<string | undefined>;
+	};
 }
 
 const CAPTURE_NOTICE =
@@ -99,6 +106,20 @@ export default function (pi: ExtensionAPI) {
 
 	pi.on("session_start", (_event, sessionCtx) => {
 		ctx = sessionCtx as unknown as Ctx;
+		// A mailbox configured to be always on: make sure the detached fetcher is there, without
+		// saying anything when it already was. A bad config must not break the session.
+		try {
+			const wanted = readConfigFile().service?.autoStart ? loadConfig().accounts.length > 0 : false;
+			if (wanted && !serviceState().alive) {
+				const started = startService();
+				notify(started.alive ? `Mail service started (pid ${started.pid}).` : "The mail service did not start — /email-service for the log.", started.alive ? "info" : "error");
+			}
+		} catch (error) {
+			if (!complained) {
+				complained = true;
+				notify((error as Error).message, "error");
+			}
+		}
 		if (AUTOSTART) start();
 	});
 
@@ -128,6 +149,47 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 			start();
+		},
+	});
+
+	pi.registerCommand("email-setup", {
+		description: "Set up the mailbox the agent reads (about three minutes)",
+		handler: async (_args, commandCtx) => {
+			ctx = commandCtx as unknown as Ctx;
+			const ui = ctx.ui;
+			if (!ui?.input || !ui.confirm || !ui.select) {
+				notify(
+					"Setting up needs an interactive session. Run /email-setup in the pi terminal, or write the config by hand — see the README.",
+					"error",
+				);
+				return;
+			}
+			await runSetup({
+				notify: (message, level) => ui.notify(message, level),
+				input: (title, placeholder) => ui.input?.(title, placeholder) ?? Promise.resolve(undefined),
+				confirm: (title, message) => ui.confirm?.(title, message) ?? Promise.resolve(false),
+				select: (title, options) => ui.select?.(title, options) ?? Promise.resolve(undefined),
+			});
+		},
+	});
+
+	pi.registerCommand("email-service", {
+		description: "The background fetcher: /email-service [start|stop|restart]",
+		handler: async (args, commandCtx) => {
+			ctx = commandCtx as unknown as Ctx;
+			const action = (args ?? "").trim().toLowerCase() || "status";
+			if (action === "stop") {
+				stopService();
+				notify("Mail service stopped.");
+				return;
+			}
+			if (action === "start" || action === "restart") {
+				if (action === "restart") stopService();
+				const state = startService();
+				notify(serviceStatusText(), state.alive ? "info" : "error");
+				return;
+			}
+			notify(serviceStatusText(), "info");
 		},
 	});
 }

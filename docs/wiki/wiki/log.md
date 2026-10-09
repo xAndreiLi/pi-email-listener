@@ -35,3 +35,6 @@
 - Updated: architecture/architecture-spool-and-wake.md
 - Updated: gotchas/gotcha-microsoft-mailbox-access.md
 
+## [2026-10-09] finalize | Added the reconnect property of the IMAP source (a failed operation drops the client so the next pass reconnects, and the error still surfaces) with its four checks as evidence, and narrowed the "not built yet" list to what is genuinely missing: backoff between passes, a reply path, catch-up reporting, and a deeper forward-header parser.
+- Updated: architecture/architecture-spool-and-wake.md
+

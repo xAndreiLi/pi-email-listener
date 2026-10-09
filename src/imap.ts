@@ -49,7 +49,20 @@ interface CursorShape {
 	lastUid?: number;
 }
 
-export function imapSource(account: string, options: ImapOptions): MailSource {
+/**
+ * Does this login actually work? Used by the setup wizard, which should fail in front of the person
+ * typing rather than the first time the service runs.
+ */
+export async function verifyImap(options: ImapOptions): Promise<{ messages: number }> {
+	const source = imapSource("verify", options);
+	try {
+		return await source.count();
+	} finally {
+		await source.close();
+	}
+}
+
+export function imapSource(account: string, options: ImapOptions): MailSource & { count(): Promise<{ messages: number }> } {
 	let client: ImapClient | undefined;
 	/** Sources fetched during a pass and not yet asked for by id. */
 	const held = new Map<string, string>();
@@ -162,6 +175,11 @@ export function imapSource(account: string, options: ImapOptions): MailSource {
 			client = undefined;
 			held.clear();
 			if (open) await open.logout().catch(() => {});
+		},
+
+		/** One look at the mailbox, for setup: proves the host, the user and the password together. */
+		async count() {
+			return withMailbox(async (imap) => ({ messages: Number(imap.mailbox?.exists ?? 0) }));
 		},
 	};
 }

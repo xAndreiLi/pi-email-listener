@@ -96,7 +96,17 @@ mailbox ──▶ fetcher (always on, no pi) ──▶ spool of files ──▶ 
 | `src/config.ts` | Accounts from `<agent dir>/pi-email-listener.json`, movable with `PI_EMAIL_LISTENER_CONFIG`. Provider-specific fields: `dir` for fixture, `clientId`/`tenant`/`mailbox`/`folder`/`since` for graph. |
 | `src/fetcher.ts` | One pass per account, ids in the index skipped, the provider's cursor stored, one broken account not stopping the others. Polls forever or `--once`. Long message ids get a hashed file name. |
 | `src/wake.ts` | What is undelivered, the pointer text, and whether a message needs care. No pi imports: this is the half the stub test drives directly. |
-| `src/extension.ts` | The pi wiring: the command, the timer, `sendMessage`, the `tool_call` quarantine, teardown on `session_shutdown`. |
+| `src/service.ts` | The detached fetcher: start (plain node, no loader), one process only, pid and start time in `service.json`, output in `service.log`, stop from any later session. |
+| `src/setup.ts` | The wizard as logic with the dialogs injected: what is asked, in what order, and what is verified before anything is written. |
+| `src/extension.ts` | The pi wiring: three commands, the timer, `sendMessage`, the `tool_call` quarantine, service autostart, teardown on `session_shutdown`. |
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `/email-setup` | The whole of onboarding: ask, open the pages, verify, write the account, offer to run it in the background. |
+| `/email-watch` | Turn this session on to incoming mail, and off again. Nothing is watched until it is asked for. |
+| `/email-service` | Report what the detached fetcher is doing, with `start`, `stop` and `restart`. |
 
 ## Invariants
 
@@ -121,7 +131,8 @@ a rewrite. Andrei accepted the seam with that reasoning ("I like the recommendat
 
 ## Not built yet
 
-A reply path from the agent's own address (the address makes it possible; nothing sends today), backoff
-between passes around a mailbox that keeps failing, catch-up reporting when a watch is turned on over
-a large backlog, and the `Fwd:` heuristic is deliberately shallow — it recovers the usual top-quoted
-`From:` line and nothing more.
+Surviving a reboot — the detached fetcher outlives a session but not a restart, which needs a Windows
+scheduled task or a systemd unit. Also: backoff between passes around a mailbox that keeps failing,
+catch-up reporting when a watch is turned on over a large backlog, and the `Fwd:` heuristic is
+deliberately shallow — it recovers the usual top-quoted `From:` line and nothing more. Sending is not
+on this list and will not be: the agent has no send path by decision.

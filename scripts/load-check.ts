@@ -65,6 +65,15 @@ await fire("session_start");
 await settle();
 check("nothing is sent before the user asks for it", sent.length === 0);
 check("the extension registers /email-watch", commands.has("email-watch"));
+check("and /email-setup", commands.has("email-setup"));
+check("and /email-service", commands.has("email-service"));
+await commands.get("email-setup").handler("", ctx);
+check(
+	"setup refuses politely in a session with no dialogs rather than throwing",
+	notices.some((line) => line.includes("interactive session")),
+);
+await commands.get("email-service").handler("status", ctx);
+check("service status is reportable from a session", notices.some((line) => line.includes("mail service") || line.includes("Mail service")));
 
 await commands.get("email-watch").handler("", ctx);
 check("the command reports that it started", notices.some((line) => line.includes("Watching mail")));

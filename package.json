@@ -41,12 +41,14 @@
 		"self-check": "jiti scripts/self-check.ts",
 		"load-check": "jiti scripts/load-check.ts",
 		"live": "node scripts/live-test.mjs",
-		"test:all": "npm run self-check && npm run load-check && npm run graph-check && npm run auth-check && npm run imap-check",
+		"test:all": "npm run self-check && npm run load-check && npm run graph-check && npm run auth-check && npm run imap-check && npm run setup-check && npm run service-check",
 		"prepublishOnly": "npm run test:all",
 		"mail:auth": "jiti scripts/mail-auth.ts",
 		"graph-check": "jiti scripts/graph-check.ts",
 		"auth-check": "jiti scripts/auth-check.ts",
-		"imap-check": "jiti scripts/imap-check.ts"
+		"imap-check": "jiti scripts/imap-check.ts",
+		"setup-check": "jiti scripts/setup-check.ts",
+		"service-check": "jiti scripts/service-check.ts"
 	},
 	"peerDependencies": {
 		"@earendil-works/pi-ai": "*",

@@ -1,9 +1,11 @@
 # pi-email-listener
 
-**Status: the agent-address front door is built.** A mailbox the agent owns is read over IMAP, every
-message turns the agent in a pi session, and the wake is a pointer rather than a summary. Verified
-offline (89 checks) and live against pi over RPC. Not yet run against a real mailbox — that needs an
-account and an app password, which is yours to create.
+**Status: the front door, the setup wizard and the always-on service are built.** A mailbox the agent
+owns is read over IMAP, every message turns the agent in a pi session, and the wake is a pointer
+rather than a summary. `/email-setup` walks a person through creating that mailbox, opening the pages
+they need, verifying the login and starting the fetcher in the background. Verified offline and live
+against pi over RPC. Not yet run against a real mailbox — that needs an account and an app password,
+which is yours to create.
 
 ## The idea
 
@@ -45,12 +47,22 @@ in that session.
 
 ## Set it up
 
-**1. Make a mailbox for the agent.** A fresh Gmail account is the easiest: free, and it still offers
-app passwords. Turn on 2-Step Verification, then create an app password at
-<https://myaccount.google.com/apppasswords> — 16 characters, no OAuth, no Cloud project, no consent
-screen.
+In a pi session, run **`/email-setup`**. It asks two questions, opens the two pages you need in a
+browser, checks the login before writing anything, and offers to keep the fetcher running in the
+background.
 
-**2. Tell the package about it** in `<agent dir>/pi-email-listener.json`:
+You will need, once:
+
+- **A mailbox for the agent.** A fresh Gmail is the easiest: free, and it still offers app passwords.
+  Turn on 2-Step Verification, then create an app password — 16 characters, no OAuth, no Cloud
+  project, no consent screen. The wizard opens both pages for you.
+- **The app password.** It is typed into the terminal, so it is visible on screen while you type it;
+  it is written to `<agent dir>/pi-email-listener.json` and nowhere else.
+
+Then ask someone to cc the agent, or forward it a message, and run `/email-watch` in the session that
+should be woken.
+
+Doing it by hand instead is fine — the same file, the same fields:
 
 ```json
 {
@@ -64,21 +76,39 @@ screen.
       "folder": "INBOX"
     }
   ],
-  "pollSeconds": 30
+  "pollSeconds": 30,
+  "service": { "autoStart": true }
 }
 ```
 
 `password` works too, but `passwordEnv` names an environment variable instead of storing it in the
 file. The mailbox is never modified: nothing is marked read, moved or deleted.
 
-**3. Fetch once** to prove it:
+## Always on
 
-```bash
-npm run fetch:once     # or npm run fetch to poll
-```
+`service.autoStart` means any session that starts will make sure the background fetcher is running, so
+mail keeps arriving with no terminal open and no session watching. It is the same process either way:
 
-**4. Start watching in a session** with `/email-watch` (again to stop). Then cc the agent on a thread
-or forward it something, and watch the turn happen.
+| | |
+|---|---|
+| `/email-service` | report what is running, and the last thing it said |
+| `/email-service start` | start it if it is not running |
+| `/email-service stop` | stop it |
+| `npm run fetch` | the same fetcher in the foreground, for watching it work |
+
+Its state is one file, `<mail dir>/service.json`, and its output is `<mail dir>/service.log`. Starting
+it twice does not start a second one.
+
+What it is **not**: an operating-system service. It outlives the session that started it, but not a
+reboot. Surviving a reboot needs a Windows scheduled task or a systemd unit, which is a piece of work
+nobody has needed yet.
+
+## What the agent will not do
+
+The agent never sends mail. There is no send path, and that is a decision rather than a gap: replies
+stay a human act, from the human's own address, which is the one thing that keeps an agent's
+mistakes recoverable. It also decides how a stranger's message is treated — a turn triggered by mail
+with a link or an attachment cannot reach `bash`, `edit` or `write`.
 
 ## What works today
 
@@ -98,9 +128,10 @@ or forward it something, and watch the turn happen.
 ## Checks
 
 ```bash
-npm run test:all   # 89 checks: spool and fetcher, extension against a stub pi API,
-                   # Graph against a stubbed Graph, sign-in against a stubbed identity
-                   # platform, IMAP against a stubbed server. Offline, no credentials.
+npm run test:all   # offline: spool and fetcher, the extension against a stub pi API, Graph against a
+                   # stubbed Graph, sign-in against a stubbed identity platform, IMAP against a
+                   # stubbed server, the setup wizard against a stubbed conversation, and the service
+                   # actually started and stopped. No credentials, no network.
 npm run live       # drives a real pi over RPC, settles it, spools a message and watches for a
                    # turn with no prompt behind it. Spawns a session and costs a model call.
 ```

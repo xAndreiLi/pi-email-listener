@@ -3,7 +3,7 @@
  * machine and not to any one project. Tests move both this file and the spool with env vars.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
@@ -34,6 +34,8 @@ export interface AccountConfig {
 export interface Config {
 	accounts: AccountConfig[];
 	pollSeconds: number;
+	/** Whether a session should make sure the detached fetcher is running when it starts. */
+	service?: { autoStart?: boolean };
 }
 
 export function configPath(): string {
@@ -41,14 +43,9 @@ export function configPath(): string {
 }
 
 export function loadConfig(path = configPath()): Config {
+	const parsed = readConfigFile(path);
 	if (!existsSync(path)) {
 		throw new Error(`no config at ${path} — write one with an "accounts" array (see the README)`);
-	}
-	let parsed: Partial<Config>;
-	try {
-		parsed = JSON.parse(readFileSync(path, "utf8")) as Partial<Config>;
-	} catch (error) {
-		throw new Error(`${path} is not valid JSON: ${(error as Error).message}`);
 	}
 	if (!Array.isArray(parsed.accounts) || parsed.accounts.length === 0) {
 		throw new Error(`${path} needs a non-empty "accounts" array`);
@@ -58,5 +55,37 @@ export function loadConfig(path = configPath()): Config {
 			throw new Error(`every account in ${path} needs a "name" and a "provider"`);
 		}
 	}
-	return { accounts: parsed.accounts, pollSeconds: parsed.pollSeconds ?? 30 };
+	return { accounts: parsed.accounts, pollSeconds: parsed.pollSeconds ?? 30, service: parsed.service };
+}
+
+/** The file as written, or nothing when there is not one yet — never throws. */
+export function readConfigFile(path = configPath()): Partial<Config> {
+	if (!existsSync(path)) return {};
+	try {
+		return JSON.parse(readFileSync(path, "utf8")) as Partial<Config>;
+	} catch (error) {
+		throw new Error(`${path} is not valid JSON: ${(error as Error).message}`);
+	}
+}
+
+/**
+ * Add or replace one account and write the file back, leaving every other key — including accounts
+ * that are already there, and settings this version does not know about — exactly as they were.
+ */
+export function saveAccount(account: AccountConfig, path = configPath()): Config {
+	const existing = readConfigFile(path);
+	const accounts = [...(existing.accounts ?? []).filter((one) => one.name !== account.name), account];
+	const next: Config = {
+		...existing,
+		accounts,
+		pollSeconds: existing.pollSeconds ?? 30,
+	} as Config;
+	writeFileSync(path, `${JSON.stringify(next, null, "\t")}\n`);
+	return next;
+}
+
+/** Remember whether a session should keep the detached fetcher running. */
+export function saveServiceSetting(autoStart: boolean, path = configPath()): void {
+	const existing = readConfigFile(path);
+	writeFileSync(path, `${JSON.stringify({ ...existing, service: { ...existing.service, autoStart } }, null, "\t")}\n`);
 }

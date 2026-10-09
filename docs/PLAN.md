@@ -136,9 +136,10 @@ genuinely untrusted input this agent gets. Job output came from the agent's own 
 
 None in v1. The wake hands over a file path and the agent already has `read`, so the listener is the
 interface rather than a mail client bolted into the agent. `email_recent`/`email_search` get added
-when "what else came in?" stops being answerable by listing a directory; `email_read`,
-`email_archive` and `email_draft` (never auto-send) are later and deliberate — every registered tool
-is context the model pays for on every request.
+when "what else came in?" stops being answerable by listing a directory; `email_read` and
+`email_archive` are later and deliberate. **Sending is not on that list and will not be**: a reply
+stays a human act from the human's own address, which is what keeps an agent's mistakes
+recoverable. That is a boundary, not a backlog item.
 
 ## 7a. Watching is opt-in
 
@@ -148,6 +149,20 @@ turning it on after a day away catches up. Starting it says so out loud, includi
 warning: a mail turn puts a stranger's message in the transcript and capture copies the transcript on
 settle. A session that should always be woken sets `PI_EMAIL_LISTENER_AUTOSTART`, which is also how
 the RPC test turns it on, a test being unable to type a command.
+
+## 7b. Setup is a command, and it stays on
+
+`/email-setup` is the whole of onboarding: it asks what kind of mailbox the agent should have, opens
+the two pages a person needs (signup, app passwords), takes the address and the app password, verifies
+the login before writing anything, then writes the account and offers to keep the fetcher running.
+Nothing is written when verification fails, and cancelling writes nothing at all. The wizard is logic
+(`src/setup.ts`) with the dialogs injected, so `scripts/setup-check.ts` drives the whole conversation
+against a stubbed mailbox — a wizard that only exists inside a terminal is a wizard nobody can test.
+
+`service.autoStart` is what makes it always on: any session that starts makes sure the detached
+fetcher (`src/service.ts`) is running, one file records it, and `/email-service` reports, starts and
+stops it. It is a process that outlives the session, not an operating-system service — surviving a
+reboot needs a scheduled task or a systemd unit, and nobody has needed that yet.
 
 ## 8. Milestones
 
@@ -187,10 +202,12 @@ the RPC test turns it on, a test being unable to type a command.
   needs a tenant Andrei does not yet have, and is no longer on the path to a working mailbox.
 - **M4 — catch-up reporting.** What the agent is told after downtime: the newest *k* messages and
   how many were skipped. Today, turning on a watch with a backlog delivers every message in it.
-- **M5 — always-on deployment.** The fetcher as a supervised process (detached from a session, or a
-  scheduled task on Windows), so tracking genuinely is unconditional. A hosted agent (RPC/SDK) stays
-  open for the case where nobody has a session open at all.
-
+- **M5 — always on. Built.** src/service.ts runs the fetcher as a detached process with plain node
+  (Node strips the types itself, so no loader and no build step), records its pid and start time in one
+  file, refuses to start a second copy, keeps its output in service.log, and can be stopped from any
+  later session. scripts/service-check.ts starts it for real, asserts it is one process, watches it
+  fetch into the spool, then stops it. **Not built: surviving a reboot** — a Windows scheduled task or
+  a systemd unit, and it is the last piece between this and never thinking about it again.
 ## 9. Risks
 
 - **OAuth friction is the adoption killer.** Any path that begins "register an app in Entra and ask

@@ -84,6 +84,27 @@ claims:
     evidence: ["user: Andrei Li, 2026-10-09 — \"The agent can turn for every email, thats totally fine.\" (asked after being told that a cc'd thread produces one turn per reply)"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
+  - id: c12
+    text: "The finished product is always on: the fetcher runs as a detached process that outlives the session that started it, and a session that starts makes sure it is running when the config says so. It is one process, recorded in one file, with its own log, started and stopped from any session; the deliberate limit is that it is not an operating-system service, so it does not survive a reboot until somebody needs that."
+    status: user-stated
+    support: 0.9
+    evidence: ["user: Andrei Li, 2026-10-09 — \"Build for the finished product, it will be always on as a detached process once configured.\"", "file: src/service.ts — startService() spawns plain node with --experimental-strip-types on scripts/fetch.ts, detached, and writes pid plus start time to service.json; a second start returns the running pid", "command: npm run service-check → 'the service starts and reports a pid', 'starting it twice does not start a second one', 'it is fetching, and saying so in its own log', 'it stops', 'and stays stopped'"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c13
+    text: "The agent never sends mail, and that is a boundary rather than a backlog item: replies stay a human act, sent by the human from their own address. It is what keeps an agent's mistakes recoverable, and it is why a turn triggered by a stranger's message has bash, edit and write refused until it ends."
+    status: user-stated
+    support: 0.95
+    evidence: ["user: Andrei Li, 2026-10-09 — \"The agent for now should not be able to send, this should always be done by the user through the users email.\"", "file: docs/PLAN.md — §7 Tools records it as a boundary, not a backlog item"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c14
+    text: "Setting up must be frictionless, so it is a guided command rather than a document: /email-setup asks what kind of mailbox the agent should have, opens the pages the person needs in a browser, takes the address and the app password, verifies the login before writing anything, writes the account, and offers to keep the fetcher running. Nothing is written when verification fails, and cancelling writes nothing at all."
+    status: user-stated
+    support: 0.9
+    evidence: ["user: Andrei Li, 2026-10-09 — \"Lets make the setup process as frictionless as possible, so lets build the package to automatically pull up what users need to set up their agent's email.\"", "file: src/setup.ts — the questions and the order, with the dialogs injected; src/extension.ts registers /email-setup, /email-watch and /email-service", "command: npm run setup-check → 18 checks including 'it verifies the login before writing anything', 'a failed login writes no config at all', 'cancelling at the address writes nothing', 'settings this version does not know about survive'"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
 
 ---
 
