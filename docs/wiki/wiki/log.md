@@ -42,3 +42,6 @@
 - Updated: decisions/decision-no-gate-and-pointer.md
 - Updated: architecture/architecture-spool-and-wake.md
 
+## [2026-10-09] finalize | Recorded the Gmail trap Andrei hit while setting up the agent mailbox: a passkey-only second factor makes the app-passwords page answer "the setting you are looking for is not available for your account", which reads like a policy refusal and is really a missing compatible second step. Also recorded the two escapes — a different IMAP host, which needs no code because the wizard already offers it, and the Gmail API with its testing-mode token expiry.
+- Updated: gotchas/gotcha-gmail-app-password.md
+

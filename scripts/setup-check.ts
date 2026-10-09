@@ -55,7 +55,7 @@ function stubUi(script: Script) {
 	};
 }
 
-const GMAIL = "A new Gmail for the agent (recommended)";
+const GMAIL = "A new Gmail for the agent";
 const dir = join(root, "one");
 mkdirSync(dir, { recursive: true });
 const path = join(dir, "pi-email-listener.json");

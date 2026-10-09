@@ -1,12 +1,12 @@
 # Wiki TOC
 
-> 5 pages across 3 topics. Per-topic tables: `toc/<topic>.md`. Full machine index: `index.md`.
+> 6 pages across 3 topics. Per-topic tables: `toc/<topic>.md`. Full machine index: `index.md`.
 
 | Topic | Pages | Table |
 |-------|-------|-------|
 | architecture | 2 | [toc/architecture.md](toc/architecture.md) |
 | decisions | 1 | [toc/decisions.md](toc/decisions.md) |
-| gotchas | 2 | [toc/gotchas.md](toc/gotchas.md) |
+| gotchas | 3 | [toc/gotchas.md](toc/gotchas.md) |
 
 ## Recently updated
 - [Outlook through Microsoft Graph: delta bounded by a date, MIME for the message, device code for the sign-in](architecture/microsoft-graph-source.md) — The Microsoft source reads a folder with a delta query bounded by receivedDateTime, fetches each message as MIME through $value, and signs in once with the device code flow — no client secret, no redirect URI, and the refresh token stored beside the spool. The client id is per account, so somebody else's mailbox can run under their own Entra app and their own consent. (2026-10-09)

@@ -28,7 +28,7 @@ export interface SetupOptions {
 	start?: typeof startService;
 }
 
-const GMAIL = "A new Gmail for the agent (recommended)";
+const GMAIL = "A new Gmail for the agent";
 const EXISTING = "A mailbox I already have (IMAP)";
 const SIGNUP = "https://accounts.google.com/signup";
 const APP_PASSWORDS = "https://myaccount.google.com/apppasswords";
@@ -78,6 +78,7 @@ export async function runSetup(ui: SetupUi, options: SetupOptions = {}): Promise
 				`  1. Create the account: ${SIGNUP}`,
 				`  2. Turn on 2-Step Verification, then make an app password: ${APP_PASSWORDS}`,
 				"Gmail only allows app passwords when 2-Step Verification is on, and those 16 characters are what this uses.",
+				"If Google will not offer an app password at all, this mailbox cannot be read: pick the other option and use any host that sells IMAP — nothing here depends on Gmail.",
 			].join("\n"),
 			"info",
 		);
@@ -117,7 +118,8 @@ export async function runSetup(ui: SetupUi, options: SetupOptions = {}): Promise
 				"The usual causes, in the order worth checking:",
 				"  1. 2-Step Verification is off, so no app password can exist.",
 				"  2. The ordinary account password was used instead of an app password.",
-				"  3. The only second step is a passkey or a security key — Gmail refuses app passwords for those. Adding a phone number or an authenticator app fixes it, and it is also what the app-passwords page itself means by 'the setting you are looking for is not available for your account'.",
+				"  3. The only second step is a passkey or a security key, which Gmail does not accept for app passwords.",
+				"  4. Google has simply decided not to offer app passwords for this account — the page says 'the setting you are looking for is not available for your account'. Nothing here can be done about that from this side; the way out is a mailbox from a host that sells IMAP, which the other option takes.",
 			].join("\n"),
 			"error",
 		);
