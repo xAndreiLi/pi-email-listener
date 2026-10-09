@@ -45,3 +45,6 @@
 ## [2026-10-09] finalize | Recorded the Gmail trap Andrei hit while setting up the agent mailbox: a passkey-only second factor makes the app-passwords page answer "the setting you are looking for is not available for your account", which reads like a policy refusal and is really a missing compatible second step. Also recorded the two escapes — a different IMAP host, which needs no code because the wizard already offers it, and the Gmail API with its testing-mode token expiry.
 - Updated: gotchas/gotcha-gmail-app-password.md
 
+## [2026-10-09] finalize | Corrected a claim I filed an hour earlier: the passkey-only explanation for Gmail refusing app passwords is refuted, since Andrei's agent account has both a phone number and a passkey and the page still refuses. The page now says the cause is not diagnosable from outside, that the consequence is what matters (that account cannot be read), and that the way out is a host that sells IMAP. Also corrected the Gmail API from "the other escape" to what it is: Testing-status consent screens issue refresh tokens that expire in seven days, per Google's own documentation.
+- Updated: gotchas/gotcha-gmail-app-password.md
+
