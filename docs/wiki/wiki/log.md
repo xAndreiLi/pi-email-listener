@@ -18,3 +18,6 @@
 ## [2026-10-09] finalize | Added the offline proof of the sign-in state machine and the two live contacts with Microsoft's endpoint (an AADSTS50059 for a placeholder client id, which shows the request shape is accepted, and the actionable error when no sign-in is stored). The remaining unproven step is a real app registration and consent.
 - Updated: architecture/microsoft-graph-source.md
 
+## [2026-10-09] finalize | Recorded the wall Andrei hit: a personal Microsoft account cannot register an app, because app registrations live in an Entra tenant and outlook.com accounts are routed to 'Microsoft Services' without being members. Since basic authentication against Outlook.com is gone too, IMAP would need the same registration — so every route into a Microsoft mailbox begins with a work or school account in a tenant. The README now says so before the setup steps.
+- Updated: architecture/microsoft-graph-source.md
+

@@ -99,6 +99,17 @@ registration once — nobody else can do this for you, and the package never see
 > apps can no longer use basic authentication against Outlook.com either, so IMAP needs the same
 > OAuth app registration. If you do not have a tenant, someone in your organisation does, and their
 > IT is the one to ask.
+>
+> **The tenant that registers the app does not have to be the mailbox's tenant.** An app registered
+> in any tenant, with supported account types set to include personal Microsoft accounts, can be
+> authorised by a personal outlook.com mailbox — that user consents for themselves, with no
+> administrator involved. So a test address on outlook.com is still usable: it needs *a* tenant to
+> register the app, not its own.
+>
+> **Expect an administrator for a corporate mailbox.** Third-party mail clients are subject to the
+> same tenant policy — Thunderbird's own users have been met with "need admin approval" — and
+> Microsoft's default consent policy for Exchange-related Graph permissions is being tightened to
+> require admin consent unless an app is approved by the tenant's mail client policy.
 
 1. Go to <https://entra.microsoft.com> → **App registrations** → **New registration**.
 2. Name it anything, and set **Supported account types** to "Accounts in any organizational
