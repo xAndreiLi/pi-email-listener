@@ -7,7 +7,7 @@
  * the account's spool directory — not in this repository, and not in anything a session records.
  */
 
-import { loadConfig } from "../src/config.ts";
+import { configPath, loadConfig } from "../src/config.ts";
 import { readTokens, signIn } from "../src/microsoft-auth.ts";
 
 const names = (accounts: { name: string }[]) => accounts.map((one) => one.name).join(" | ");
@@ -28,6 +28,16 @@ if (!account) {
 	process.exitCode = 1;
 } else {
 	if (readTokens(account.name)) console.log(`Account "${account.name}" already has a stored sign-in; this replaces it.`);
-	await signIn({ name: account.name, clientId: account.clientId, tenant: account.tenant });
-	console.log(`Signed in. The refresh token is stored with the spool for "${account.name}".`);
+	try {
+		await signIn({ name: account.name, clientId: account.clientId, tenant: account.tenant });
+		console.log(`Signed in. The refresh token is stored with the spool for "${account.name}".`);
+	} catch (error) {
+		// Microsoft answers a bad client id with a paragraph of AADSTS text. A stack trace on top of
+		// it helps nobody, and this is the one command where the person is talking to a stranger.
+		console.error(`\nSign-in failed: ${(error as Error).message}`);
+		console.error(
+			`\nIf that names the client id, the tenant or a missing scope, check "clientId" in ${configPath()} against the Application (client) ID in Entra, and that the app allows public client flows.`,
+		);
+		process.exitCode = 1;
+	}
 }
