@@ -169,6 +169,12 @@ everything, and it needs an app registration.
 This repository installs its own dependencies; `node_modules` is a normal install, not a junction into
 the pi install. Do not replace it with a junction — npm cannot install through one.
 
+## Thinking it through
+
+[](docs/INTAKE.md) lays out every route mail could take into an agent — what each one
+costs, who has to approve it, and what can revoke it — plus the open research questions. Written to
+be thought about rather than acted on.
+
 ## Licence
 
 MIT

@@ -11,3 +11,4 @@
 {"ts":"2026-10-09T11:13:42.212Z","actor":"agent","op":"wiki.finalize","action":"updated","subject":"decisions/decision-no-gate-and-pointer.md, architecture/architecture-spool-and-wake.md","outcome":"ok"}
 {"ts":"2026-10-09T11:28:07.440Z","actor":"agent","op":"wiki.finalize","action":"updated","subject":"gotchas/gotcha-gmail-app-password.md","outcome":"ok"}
 {"ts":"2026-10-09T11:36:55.335Z","actor":"agent","op":"wiki.finalize","action":"updated","subject":"gotchas/gotcha-gmail-app-password.md","outcome":"ok"}
+{"ts":"2026-10-09T11:37:49.164Z","actor":"agent","op":"wiki.finalize","action":"updated","subject":"architecture/owning-the-drop.md","outcome":"ok"}

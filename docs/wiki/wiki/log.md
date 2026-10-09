@@ -48,3 +48,6 @@
 ## [2026-10-09] finalize | Corrected a claim I filed an hour earlier: the passkey-only explanation for Gmail refusing app passwords is refuted, since Andrei's agent account has both a phone number and a passkey and the page still refuses. The page now says the cause is not diagnosable from outside, that the consequence is what matters (that account cannot be read), and that the way out is a host that sells IMAP. Also corrected the Gmail API from "the other escape" to what it is: Testing-status consent screens issue refresh tokens that expire in seven days, per Google's own documentation.
 - Updated: gotchas/gotcha-gmail-app-password.md
 
+## [2026-10-09] finalize | Checked whether the agent's mailbox could be something we run rather than another provider's, and recorded the verified shape: a mail server on the user's own machine cannot be the receiving end (public MX, port 25, and mail bounced by downtime lands on the sender days later), but a Cloudflare domain with Email Routing pointed at a Worker that stores raw mail in KV — pulled locally over the REST API with a scoped token — is free, unlimited inbound, and revocable by nobody. Also recorded the honest cost: setup only a technical person can do, one more adapter, and that hosting it for others would mean running a mail service.
+- Updated: architecture/owning-the-drop.md
+

@@ -1,10 +1,10 @@
 # Wiki TOC
 
-> 6 pages across 3 topics. Per-topic tables: `toc/<topic>.md`. Full machine index: `index.md`.
+> 7 pages across 3 topics. Per-topic tables: `toc/<topic>.md`. Full machine index: `index.md`.
 
 | Topic | Pages | Table |
 |-------|-------|-------|
-| architecture | 2 | [toc/architecture.md](toc/architecture.md) |
+| architecture | 3 | [toc/architecture.md](toc/architecture.md) |
 | decisions | 1 | [toc/decisions.md](toc/decisions.md) |
 | gotchas | 3 | [toc/gotchas.md](toc/gotchas.md) |
 
