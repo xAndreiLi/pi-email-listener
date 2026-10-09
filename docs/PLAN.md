@@ -81,28 +81,38 @@ Consequences to design around, not to hide:
 - **The wake payload is a pointer**: sender, subject, received time, account and the spool file to
   read. No body. The body is one `read` away, and bodies in the transcript are permanent.
 
-## 5. Providers
+## 5. Providers — Outlook first
 
-The protocol layer is the least interesting part of this and the most likely to eat the schedule.
+Outlook is the first real target, because a person Andrei works with needs it (2026-10-09) — so the
+OAuth path is designed in now rather than bolted on later. That means **Microsoft Graph**:
 
-- **Microsoft (Outlook.com, M365):** basic authentication for IMAP/POP/SMTP is switched off in
-  Exchange Online, so there is no app-password shortcut. Access means an app registration in Entra
-  and OAuth2. For a personal mailbox that is a one-time setup the user does themselves; in a
-  **corporate tenant the mailbox permission commonly needs admin consent** — the client's IT
-  department. That is an adoption wall, and a product decision rather than a technical one.
-- **Reading without a public endpoint:** Graph delta queries (`/me/messages/delta`) poll cheaply and
-  return only what changed. Graph *change notifications* are push but need a public HTTPS endpoint,
-  lifecycle notifications and renewal every few days — not v1.
-- **IMAP (everything else):** one adapter covers Gmail, Fastmail, Proton Bridge, most providers and
-  self-hosted; Gmail also needs OAuth2. IMAP IDLE makes arrival near-push.
-- **The adapter is two calls**, and that is the whole abstraction: `listNew(cursor) → Envelope[]`
-  and `fetch(id) → raw message`, with an opaque cursor the adapter defines. Two implementations
-  before v1 ships; everything above that line stays provider-agnostic.
+- **Delta on one folder, bounded by a date.** `GET /me/mailFolders/inbox/messages/delta` accepts
+  `$filter=receivedDateTime ge {value}` and returns a `deltaLink` that *is* the sync position —
+  which is what the source cursor wants to be. The date bound matters: without it a first run copies
+  an entire mailbox to disk, which is slow and none of our business.
+- **The message is fetched as MIME.** `GET /me/messages/{id}/$value` returns the message as it
+  arrived, so envelope parsing, the quarantine decision and the spool format are the same code every
+  other provider goes through.
+- **Device code flow, public client.** No client secret and no redirect URI: `npm run mail:auth`
+  prints a code, the user signs in wherever they like, and the process polls. The refresh token is
+  written beside the spool for that account and refreshed when it is close to expiring. `Mail.Read`
+  and `offline_access` are the only scopes.
+- **One `clientId` per account**, so somebody else can register their own app and keep their own IT
+  in charge of consent — for a mailbox in another tenant that is the better arrangement.
+- **The wall is consent, not code.** A tenant that does not let users consent to apps needs an
+  administrator to grant it once. That is a go-to-market fact, and it is why bringing your own app
+  matters.
 
-The first target is Andrei's personal address, and **its contents are not to be read, explored or
-ingested** — it is a test target. The implementation and its checks must not depend on anybody
-reading his mail: the fetcher is developed against fixtures, and the live account is only connected
-when he supplies credentials himself and runs it.
+**IMAP is the generalisation, not v1.** It would cover Gmail, Fastmail, Proton Bridge, self-hosted
+and anything else in one adapter, but nothing needs it yet, so it is written down rather than built.
+
+**The adapter is two calls** — `listNew(cursor) → { envelopes, cursor }` and `fetch(id) → raw
+message` — with a cursor the adapter defines and nobody else interprets: the fetcher stores whatever
+comes back. Adding a provider means writing those two and nothing else.
+
+The first live account is Andrei's personal mailbox, and **its contents are not to be read, explored
+or ingested** — it is a test target. Development runs against fixtures and a stubbed Graph, so no
+check depends on anybody reading his mail.
 
 ## 6. Trust
 
@@ -159,11 +169,17 @@ the RPC test turns it on, a test being unable to type a command.
   turn, released on `agent_settled`; idempotent teardown on `session_shutdown`; watching opt-in via
   `/email-watch`, so no session is turned by surprise and a backlog is delivered when it is turned
   on). `scripts/load-check.ts` drives all of it against a stub pi API — 24 checks, no network, no
-  model, no session. **Not yet proven: that pi accepts the wake.** `scripts/live-test.mjs` is written
+  model, no session. **Proven live.** `scripts/live-test.mjs` is written
   for that — drive a real pi over RPC, settle it, spool a message, watch for a turn with no prompt
-  behind it — and has not been run, because it spawns a session and costs a model call.
-- **M3 — a real provider.** One adapter against a live mailbox, with OAuth2 token storage, reconnect
-  and catch-up after downtime. The first live account is Andrei's, connected by him.
+  behind it — and passes: on 2026-10-09 the agent settled at 3.6 s, a message reached the spool at 13.1 s, and at 13.4 s a turn started with no prompt behind it carrying `[email] Dana Whitfield <dana@example.com> · Q3 rollout needs a decision`.
+- **M3 — the Outlook provider. Built, unproven against Microsoft.** `src/graph.ts` (delta on a folder
+  bounded by `receivedDateTime ge`, paging followed with an unfinished page kept as the cursor,
+  `@removed` entries skipped, MIME fetched through `$value`), `src/microsoft-auth.ts` (device code
+  sign-in, a token store beside the spool, refresh when close to expiring) and `scripts/mail-auth.ts`
+  for the one-time sign-in. `scripts/graph-check.ts` drives all of it against a stubbed Graph — 12
+  checks, no credentials, no network. **Not yet proven: that Microsoft accepts the app registration,
+  the scopes and the sign-in.** That needs a real Entra app and a real mailbox, which is Andrei's to
+  create and connect.
 - **M4 — catch-up reporting.** What the agent is told after downtime: the newest *k* messages and
   how many were skipped. Today, turning on a watch with a backlog delivers every message in it.
 - **M5 — always-on deployment.** The fetcher as a supervised process (detached from a session, or a

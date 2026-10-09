@@ -22,8 +22,8 @@ export interface Envelope {
 export type Cursor = Record<string, unknown>;
 
 export interface MailSource {
-	/** Everything the cursor has not seen, oldest first. Repeats are allowed; the index filters them. */
-	listNew(cursor: Cursor | undefined): Promise<Envelope[]>;
+	/** Everything the cursor has not seen, oldest first, and where the next pass should resume. */
+	listNew(cursor: Cursor | undefined): Promise<{ envelopes: Envelope[]; cursor: Cursor }>;
 	/** The message exactly as it arrived. */
 	fetch(id: string): Promise<string>;
 }
@@ -43,10 +43,13 @@ export function fixtureSource(dir: string): MailSource {
 	return {
 		async listNew(cursor) {
 			const since = typeof cursor?.lastSeenAt === "string" ? cursor.lastSeenAt : "";
-			return mail()
+			const envelopes = mail()
 				.filter((message) => message.envelope.receivedAt >= since)
 				.map((message) => ({ ...message.envelope, id: idOf(message) }))
 				.sort((a, b) => a.receivedAt.localeCompare(b.receivedAt));
+			const newest = envelopes.at(-1)?.receivedAt;
+			// Only a message that was actually there moves the cursor on.
+			return { envelopes, cursor: newest ? { lastSeenAt: newest } : (cursor ?? {}) };
 		},
 		async fetch(id) {
 			const message = mail().find((candidate) => idOf(candidate) === id);

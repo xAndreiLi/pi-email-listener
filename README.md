@@ -85,6 +85,62 @@ always be woken — and for the RPC test, which cannot type a command.
 A real mailbox needs an OAuth2 provider adapter, which is M3 — and the first live account is
 Andrei's own, connected by him.
 
+## Outlook (Microsoft Graph)
+
+Outlook, Outlook.com and Microsoft 365 are read through Microsoft Graph. You need an app
+registration once — nobody else can do this for you, and the package never sees the sign-in.
+
+1. Go to <https://entra.microsoft.com> → **App registrations** → **New registration**.
+2. Name it anything, and set **Supported account types** to "Accounts in any organizational
+directory and personal Microsoft accounts" — that covers a work mailbox and an outlook.com one.
+3. Under **Authentication → Advanced settings**, set **Allow public client flows** to **Yes**. The
+device code flow does not work without it, and there is no redirect URI to create.
+4. Under **API permissions**, add **Microsoft Graph → Delegated → `Mail.Read`**. Do not add
+`offline_access`; it is requested at run time and is what buys the refresh token.
+5. Copy the **Application (client) ID** into the account in `<agent dir>/pi-email-listener.json`:
+
+```json
+{
+  "accounts": [
+    {
+      "name": "work",
+      "provider": "graph",
+      "clientId": "<application (client) id>",
+      "tenant": "common",
+      "mailbox": "me",
+      "folder": "inbox",
+      "since": "2026-10-09T00:00:00Z"
+    }
+  ],
+  "pollSeconds": 30
+}
+```
+
+`since` is where the first sync starts. It exists so a first run does not copy an entire mailbox to
+disk — set it to now, or to whenever you want the record to begin.
+
+Then, once per account:
+
+```bash
+npm run mail:auth work   # prints a code to enter at microsoft.com/devicelogin
+npm run fetch            # or fetch:once
+```
+
+The refresh token is stored beside the spool for that account, so the fetch needs no further
+sign-in. `mail:auth` again replaces it.
+
+**A corporate mailbox** may need consent before any of this works: if the tenant does not let users
+consent to apps themselves, an administrator grants it once under **Enterprise applications** → the
+app → **Permissions** → **Grant admin consent**. For a mailbox in someone else's tenant it is usually
+better that they register their own app and use their own `clientId` — the package supports one per
+account, and that keeps their IT in charge of their own consent.
+
+## A real mailbox needs a real dependency tree
+
+This repository installs its own dependencies (`npm install`), so `node_modules` is a normal
+install. Earlier it was a Windows junction into the pi install, which worked for imports but meant
+npm could never be run; if you recreate that junction, you cannot install anything.
+
 ## Licence
 
 MIT

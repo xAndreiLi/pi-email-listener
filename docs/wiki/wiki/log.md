@@ -6,3 +6,12 @@
 - Updated: gotchas/gotcha-junction-blocks-npm-install.md
 - Updated: gotchas/gotcha-mail-turn-meets-capture.md
 
+## [2026-10-09] remove | 1 page(s)
+- Reason: Obsolete: the junction is gone. On 2026-10-09 the repo replaced it with a real npm install (124 packages, lockfile) and installed into pi from the local path, so the page's claims — node_modules is a junction, CI cannot run npm ci — are now false. The durable part, that a junction into the pi install cannot be installed into and how to remove it safely, has been merged into the home wiki's procedures/decision-symlink-dev-tooling.md, where it belongs with the rest of the dev-symlink guidance.
+- Removed: gotchas/gotcha-junction-blocks-npm-install.md
+
+## [2026-10-09] finalize | Updated to match the day's work: the Graph source page is new (Outlook first, delta bounded by a date, MIME through $value, device code sign-in, one client id per account and what that means for another tenant's consent), the architecture page gained the cursor-ownership invariant and the live wake proof and lost its stale provider list, and the junction gotcha page was removed as obsolete — the repo now installs for real and loads into pi from the local path.
+- Updated: architecture/architecture-spool-and-wake.md
+- Updated: architecture/microsoft-graph-source.md
+- Updated: decisions/decision-no-gate-and-pointer.md
+

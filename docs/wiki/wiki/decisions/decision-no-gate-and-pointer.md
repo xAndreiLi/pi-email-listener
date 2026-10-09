@@ -43,6 +43,27 @@ claims:
     evidence: ["user: Andrei Li, 2026-10-09 — \"Yes i like the recommendation for safety here.\" (the recommendation: quarantine messages with links, attachments or instructions by blocking bash/edit/write until the human has seen them; frame as untrusted but leave tools available otherwise)", "file: docs/PLAN.md — §6"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
+  - id: c6
+    text: "Tracking is unconditional and waking is opt-in — two separate concerns. The fetcher keeps every message, all the time, and catches up on what it missed whenever it has fallen behind on sync; whether an agent is turned by that mail is a separate choice the user makes per session. Migrated here from the home wiki, where this was filed before this project had a wiki of its own."
+    status: user-stated
+    support: 0.9
+    evidence: ["user: Andrei Li, 2026-10-09 — \"We should be tracking all emails always, and updating when there is a new email or if we are behind on sync, but the process that actually turns the agent should require the user to set up this service through a pi session.\""]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09  - id: c7
+    text: "The provider built first is Microsoft Graph for Outlook, because a person Andrei works with needs it, which leaves his own personal Gmail without a provider — that would take the IMAP adapter, which is not built. So the live test of the Graph path needs a Microsoft mailbox (his own or that person's), and his Gmail account cannot serve as the first live target until IMAP exists."
+    status: user-stated
+    support: 0.85
+    evidence: ["user: Andrei Li, 2026-10-09 — \"Lets design for outlook in mind, as i have a person who needs it. So lets just get everything we'd need for that immediately.\"", "user: Andrei Li, 2026-10-09 — \"My personal mailbox is gmail\" (the earlier first target, which Graph does not serve)", "file: C:/Coding/pi-email-listener/docs/wiki/wiki/architecture/microsoft-graph-source.md — the Graph source, and why IMAP is deferred"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c8
+    text: "This repository installs its own dependencies and the package is installed into pi from the local path, not from a registry: `npm install` replaced the Windows junction that made `node_modules` point at the pi install, and `pi install C:/Coding/pi-email-listener` makes pi load the working tree itself, so edits are live in the next session and there is no second copy to conflict with."
+    status: user-stated
+    support: 0.9
+    evidence: ["user: Andrei Li, 2026-10-09 — \"Lets go with your recommendation, and then have this project be symlinked so that pi recognizes this local version as the installed version.\"", "command: cmd //c \"rmdir node_modules\" then npm install --no-audit --no-fund → 'added 124 packages in 9s', package-lock.json written; the pi install at C:/Users/liand/.pi/agent/install/releases/1.1.0/node_modules was left intact (78 entries)", "command: pi install C:/Coding/pi-email-listener → installed; pi list shows '..\\..\\..\\..\\Coding\\pi-email-listener → C:\\Coding\\pi-email-listener'"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+
 ---
 
 ## Why no gate, when the sibling package has one

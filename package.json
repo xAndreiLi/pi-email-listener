@@ -16,6 +16,16 @@
 	"engines": {
 		"node": ">=22"
 	},
+	"files": [
+		"src",
+		"README.md",
+		"LICENSE"
+	],
+	"pi": {
+		"extensions": [
+			"./src/extension.ts"
+		]
+	},
 	"keywords": [
 		"pi-package",
 		"pi",
@@ -30,7 +40,11 @@
 		"fetch:once": "jiti scripts/fetch.ts --once",
 		"self-check": "jiti scripts/self-check.ts",
 		"load-check": "jiti scripts/load-check.ts",
-		"test:all": "npm run self-check && npm run load-check"
+		"live": "node scripts/live-test.mjs",
+		"test:all": "npm run self-check && npm run load-check && npm run graph-check",
+		"prepublishOnly": "npm run test:all",
+		"mail:auth": "jiti scripts/mail-auth.ts",
+		"graph-check": "jiti scripts/graph-check.ts"
 	},
 	"peerDependencies": {
 		"@earendil-works/pi-ai": "*",

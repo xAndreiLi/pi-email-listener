@@ -30,7 +30,11 @@ const env = {
 	PI_EMAIL_LISTENER_AUTOSTART: "1",
 };
 
-const pi = spawn("pi", ["--mode", "rpc", "--no-session", "-e", "./src/extension.ts"], { env, stdio: ["pipe", "pipe", "inherit"] });
+const piEntry = "node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js";
+const pi = spawn(process.execPath, [piEntry, "--mode", "rpc", "--no-session", "-e", "./src/extension.ts"], {
+	env,
+	stdio: ["pipe", "pipe", "inherit"],
+});
 
 const timeline = [];
 const start = Date.now();
@@ -64,6 +68,18 @@ let settledWithoutWake;
 
 function onRecord(record) {
 	records.push(record);
+
+	// The pointer can arrive on more than one record type (`message_start`, `message_end`, and a
+	// custom message is not an assistant message), so look for the text itself rather than for a
+	// record name. Nothing else in this run contains "[email]".
+	if (JSON.stringify(record).includes("[email]")) {
+		const pointer = JSON.stringify(record).match(/\[email\][^"\\]*/)?.[0];
+		if (pointer) {
+			wakeText = pointer;
+			mark(`wake message: ${pointer}`);
+		}
+	}
+
 	switch (record.type) {
 		case "agent_settled":
 			settles++;
@@ -73,12 +89,6 @@ function onRecord(record) {
 		case "agent_start":
 			mark(`agent_start${settledWithoutWake && settles > 0 ? " (no prompt behind it — this is the wake)" : ""}`);
 			if (settledWithoutWake) woke = true;
-			break;
-		case "message":
-			if (typeof record.text === "string" && record.text.includes("[email]")) {
-				wakeText = record.text;
-				mark(`wake message: ${record.text.split("\n")[0]}`);
-			}
 			break;
 		default:
 			break;
@@ -96,7 +106,18 @@ function close(reason) {
 		pi.kill();
 		console.log(timeline.join("\n"));
 		console.log(`\n${records.length} protocol records`);
-		console.log(woke && wakeText ? "PASS: a spooled message started a turn by itself" : "FAIL: no wake turn was observed");
+		if (woke && wakeText) {
+			console.log("PASS: a spooled message started a turn by itself, carrying the pointer");
+		} else {
+			// Say what did happen, so a failure is diagnosable without another run.
+			const types = new Map();
+			for (const record of records) types.set(record.type, (types.get(record.type) ?? 0) + 1);
+			console.log(`FAIL: woke=${woke} pointer=${Boolean(wakeText)}`);
+			console.log(`record types: ${[...types].map(([type, count]) => `${type}×${count}`).join(", ")}`);
+			const custom = records.filter((record) => JSON.stringify(record).includes("custom"));
+			console.log(`records mentioning a custom message: ${custom.length}`);
+			for (const record of custom.slice(0, 3)) console.log(JSON.stringify(record).slice(0, 400));
+		}
 		process.exitCode = woke && wakeText ? 0 : 1;
 	}, 1_500);
 }
@@ -118,7 +139,10 @@ setTimeout(() => {
 			"No links and no attachments here.",
 		].join("\r\n"),
 	);
-	const stored = spawn("jiti", ["scripts/fetch.ts", "--once"], { env, stdio: ["ignore", "pipe", "inherit"] });
+	const stored = spawn(process.execPath, ["node_modules/jiti/lib/jiti-cli.mjs", "scripts/fetch.ts", "--once"], {
+		env,
+		stdio: ["ignore", "pipe", "inherit"],
+	});
 	stored.stdout.setEncoding("utf8");
 	stored.stdout.on("data", (chunk) => process.stdout.write(chunk));
 	stored.on("exit", (code) => mark(`fetcher exited ${code}`));

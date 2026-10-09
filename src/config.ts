@@ -12,6 +12,16 @@ export interface AccountConfig {
 	provider: string;
 	/** fixture only: the directory of .eml files standing in for a mailbox. */
 	dir?: string;
+	/** graph only: the client id of the Entra app registration this account signs in with. */
+	clientId?: string;
+	/** graph only: "common" covers work and personal accounts. */
+	tenant?: string;
+	/** graph only: mailbox to read, default the signed-in user's. */
+	mailbox?: string;
+	/** graph only: folder to watch, default the inbox. */
+	folder?: string;
+	/** graph only: where a first sync starts, so a first run does not copy a whole mailbox. */
+	since?: string;
 }
 
 export interface Config {

@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The spool and fetcher, the extension against a stub pi API, and the Graph source against a
+      # stubbed Graph. All offline. `npm run live` is deliberately not here: it spawns a real pi
+      # session and spends a model call, so it is run by hand.
+      - name: Checks
+        run: npm run test:all
