@@ -2,7 +2,7 @@
 title: "An inbox the package can create itself: AgentMail's agent sign-up"
 type: architecture/layer
 topic: architecture
-summary: "AgentMail lets a program create an agent inbox with one unauthenticated POST — no human sign-up, card, domain, app password or OAuth — and the inbox is readable over IMAP with its API key as the password, so the existing imap source reads it unchanged (proven live 2026-10-09 with suruiling@agentmail.to, now configured on Andrei's machine). Without a human attached the inbox can receive but cannot send to anyone, which matches the no-send boundary. The price: a lost key cannot be recovered, a third party holds the mail, and inbound mail that fails authentication is dropped without a bounce. Arrival of a real message is still to be proven."
+summary: "AgentMail lets a program create an agent inbox with one unauthenticated POST — no human sign-up, card, domain, app password or OAuth — and the inbox is readable over IMAP with its API key as the password, so the existing imap source reads it unchanged (proven live 2026-10-09 with suruiling@agentmail.to, now configured on Andrei's machine). /email-setup offers it first: a name, and the agent has an address, with its Spam folder watched too. Without a human attached the inbox can receive but cannot send to anyone, which matches the no-send boundary. The price: a lost key cannot be recovered, a third party holds the mail, and inbound mail that fails authentication is dropped without a bounce. Arrival of a real message is still to be proven."
 tags: [architecture, intake, agentmail, imap, setup, rented-address]
 updated: 2026-10-09
 sources:
@@ -21,8 +21,9 @@ sources:
     "raw/sessions/2026-10-09-session-2026-10-09-080256.md",
     "raw/sessions/2026-10-09-session-2026-10-09-080352.md",
     "raw/sessions/2026-10-09-session-2026-10-09-082544.md",
+    "raw/sessions/2026-10-09-session-2026-10-09-084215.md",
   ]
-files: [C:/Coding/pi-email-listener/src/imap.ts, C:/Coding/pi-email-listener/src/setup.ts]
+files: [C:/Coding/pi-email-listener/src/imap.ts, C:/Coding/pi-email-listener/src/setup.ts, C:/Coding/pi-email-listener/scripts/setup-check.ts]
 claims:
   - id: c1
     text: "AgentMail lets a program create a receive-only agent inbox with one unauthenticated call — POST https://api.agentmail.to/v0/agent/sign-up with a `username` returns an `inbox_id` (`<username>@agentmail.to`) and an `api_key` — and that inbox is readable over IMAP at imap.agentmail.to:993 with the inbox address as the user and the API key as the password. This package's existing imap source could therefore read it with no new adapter, and setup would need no human sign-up, card, domain, app password or OAuth. Without a human email the inbox cannot send to anyone, which matches the no-send boundary, but a lost key cannot be recovered. Unverified organizations are denied only api_key_create, list entries, pods and app_connect — reading is not restricted. Free tier: no card, 3 inboxes, 3,000 emails/month, 3 GB; the 24-hour message expiry is an opt-in enterprise policy, off by default. An unclaimed agent organization is smaller than that: it reported inbox_limit 1 and domain_limit 0, and a claim moves it onto the Free plan. Sign-up and the IMAP login were run live on 2026-10-09 (c3)."
@@ -53,10 +54,24 @@ claims:
     reviewed: 2026-10-09
     last_checked: 2026-10-09
   - id: c5
-    text: "At Andrei's request, the inbox suruiling@agentmail.to was signed up on 2026-10-09 for his machine and written into ~/.pi/agent/pi-email-listener.json as the imap account `suruiling`, beside the earlier `outlook` Graph account. No human email was given at sign-up, so by c1 the inbox is receive-only and its key cannot be recovered. The setup kept the key out of the transcript and left the config as its only copy."
+    text: "At Andrei's request, the inbox suruiling@agentmail.to was signed up on 2026-10-09 for his machine and written into ~/.pi/agent/pi-email-listener.json as the imap account `suruiling` (the machine as it now stands is c7). No human email was given at sign-up, so by c1 the inbox is receive-only and its key cannot be recovered. The setup kept the key out of the transcript and left the config as its only copy."
     status: verified
     support: 0.8
     evidence: ["user: Andrei Li, 2026-10-09 — 'You can run tests and set up an agentmail for my machine. try to use the name SuRuiling.'", "command: jiti agentmail-pass.ts → 'accounts in config: outlook, suruiling'", "command: ls ~/.pi/agent | grep agentmail-signup → 'rescue copy: removed' (the sign-up response was written to disk first, then deleted once the config held the key)"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c6
+    text: "/email-setup now offers 'Give the agent its own address (instant, no sign-up)' first. It signs up at AgentMail with no human email, so the inbox is receive-only, and writes two imap accounts: `<name>` on INBOX and `<name>-spam` on Spam, both with the key as the password. Unlike the Gmail and IMAP routes, it writes before it verifies, because the key cannot be fetched again. If the config cannot be written, the key goes to `<config>.<name>.agentmail.json` and the user is told where, without the key being shown. It then checks both folders; a failed check keeps the accounts, since the fetcher retries every pass. An existing AgentMail address is named, with a question, before a second is made, and a refused name is reported in AgentMail's own words before another is asked for."
+    status: verified
+    support: 0.85
+    evidence: ["file: src/setup.ts — giveItAnAddress(): 'Unlike the other routes it writes before it verifies, because the key it hands back cannot be fetched again — a check that failed first would lose the inbox'; the spam account is `{ ...account, name: `${name}-spam`, folder: \"Spam\" }`; the rescue file is `${path}.${name}.agentmail.json`", "command: npm run setup-check → 'ok the new address is the first thing offered', 'ok a refused name is reported in AgentMail's words, and another is asked for', 'ok its Spam folder is watched as well', 'ok both folders are checked, and only once the key is safely written', 'ok the key never appears in anything said on screen', 'ok a failed first login keeps the account, because the key cannot be fetched again', 'ok a config that cannot be written does not lose the key', 'ok the sign-up sends the name and no human email, so the inbox is receive-only'", "command: npm run test:all → 'exit: 0 · ok: 140 · suites passed: 7'"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c7
+    text: "Andrei's machine as prepared for testing on 2026-10-09: the config holds `suruiling` (INBOX) and `suruiling-spam` (Spam), the same key in both; the `outlook` Graph account and its empty spool folder are gone; both folders log in at imap.agentmail.to, where the spam folder is named `Spam`; and there is no `service` setting, so the background fetcher runs only once it is started."
+    status: verified
+    support: 0.8
+    evidence: ["command: jiti ready-suruiling.ts → 'accounts now: suruiling (INBOX), suruiling-spam (Spam) · service: null', 'key held by both: true', 'mail dir: suruiling', 'login ok · INBOX: 0 message(s)', 'login ok · Spam: 0 message(s)'", "user: Andrei Li, 2026-10-09 — 'remove outlook from the picture, and just get the system ready for testing. You dont need to start testing yet.'"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
 ---
@@ -72,8 +87,8 @@ from whatever they use.
 
 ## On Andrei's machine
 
-`suruiling@agentmail.to` is configured as the account `suruiling` ([c5](#c5)), and the IMAP login and a
-first pass work ([c3](#c3)). The sign-up response was written to disk the moment it arrived, saved
+`suruiling@agentmail.to` is configured as `suruiling` and `suruiling-spam` ([c7](#c7)), and the IMAP
+login and a first pass work ([c3](#c3)). The background service is off until someone starts it. The sign-up response was written to disk the moment it arrived, saved
 into the config through `saveAccount`, checked there, and then the rescue copy was deleted. So **the
 config file is the only copy of the key**. Claiming the inbox at <https://console.agentmail.to/claim>
 makes it recoverable, but it also unlocks sending ([c4](#c4)).
@@ -85,15 +100,15 @@ itself refuses to send, which matters because the agent can read its own config.
 wanted, the limits are those in [c4](#c4): a slow ramp after a claim, and on the free plan sent mail
 shows AgentMail's branding.
 
-## What setup would become (sketch, not built)
+## What /email-setup does
 
 ```
 /email-setup → "Give the agent its own address" → a name → done
 ```
 
-The wizard POSTs the sign-up ([c1](#c1)), then writes an ordinary `imap` account: host
-`imap.agentmail.to`, user the returned inbox address, password the returned key. The IMAP source, the
-spool and the wake stay as they are.
+The wizard signs up ([c1](#c1)), writes two ordinary `imap` accounts, checks the login, and offers to
+keep the fetcher running ([c6](#c6)). The IMAP source, the spool and the wake are unchanged; the only
+new code is the sign-up call and the order of writing before checking.
 
 ## What it costs
 

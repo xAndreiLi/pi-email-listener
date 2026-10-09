@@ -107,7 +107,7 @@ mailbox ──▶ fetcher (always on, no pi) ──▶ spool of files ──▶ 
 
 | Command | What it does |
 |---|---|
-| `/email-setup` | The whole of onboarding: ask, open the pages, verify, write the account, offer to run it in the background. |
+| `/email-setup` | The whole of onboarding. First choice: give the agent an AgentMail address on the spot, written before it is verified because its key cannot be fetched again ([AgentMail page](agentmail-agent-inbox.md)). Otherwise ask, open the pages, verify, write the account. Either way, offer to run it in the background. |
 | `/email-watch` | Turn this session on to incoming mail, and off again. Nothing is watched until it is asked for. |
 | `/email-service` | Report what the detached fetcher is doing, with `start`, `stop` and `restart`. |
 

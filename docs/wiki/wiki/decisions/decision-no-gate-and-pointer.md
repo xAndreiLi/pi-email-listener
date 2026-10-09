@@ -120,6 +120,13 @@ claims:
     evidence: ["user: Andrei Li, 2026-10-09 — \"The document can stay as a artifact, just record your findings in the wiki.\""]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
+  - id: c17
+    text: "Andrei chose to commit everything as is: the option that keeps the agent's address (suruiling@agentmail.to) in the wiki of this public repository, rather than redacting it first. He took the recommendations for the rest: AgentMail wired into /email-setup with receive-only and Spam-watched defaults, the outlook account removed, and the system readied for testing without the testing being started."
+    status: user-stated
+    support: 0.85
+    evidence: ["user: Andrei Li, 2026-10-09 — \"You can commit everything as is, and lets go with the recommendations for everything else. Lets get this setup wired into email-setup, remove outlook from the picture, and just get the system ready for testing. You dont need to start testing yet.\"", "context: the choice he answered offered (a) redact the address from the wiki before committing, recommended, or (b) commit and push everything as it is"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
 
 ---
 

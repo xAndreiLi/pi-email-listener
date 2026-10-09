@@ -84,3 +84,12 @@
 - Orphans: 0 · raw backlog: 0
 - Contradiction checks: 0 · duplicate candidates: 0
 
+## [2026-10-09] capture | 3 insights (tool)
+- Raw: raw/sessions/2026-10-09-session-2026-10-09-084215.md
+- Filed 1 · reinforced 0 · review 0 · rejected 2
+
+## [2026-10-09] finalize | AgentMail wired into /email-setup as the first choice: receive-only sign-up, INBOX and Spam accounts written before the login check because the key cannot be fetched again, a rescue file if the config cannot be written, and an existing address named before a second is made (140 checks). Andrei's machine readied for testing: suruiling and suruiling-spam, outlook removed, service off. Andrei's call recorded: commit everything as is, the address included.
+- Updated: architecture/agentmail-agent-inbox.md
+- Updated: decisions/decision-no-gate-and-pointer.md
+- Updated: architecture/architecture-spool-and-wake.md
+
