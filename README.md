@@ -2,7 +2,7 @@
 
 **Status: the agent-address front door is built.** A mailbox the agent owns is read over IMAP, every
 message turns the agent in a pi session, and the wake is a pointer rather than a summary. Verified
-offline (86 checks) and live against pi over RPC. Not yet run against a real mailbox — that needs an
+offline (85 checks) and live against pi over RPC. Not yet run against a real mailbox — that needs an
 account and an app password, which is yours to create.
 
 ## The idea
@@ -98,7 +98,7 @@ or forward it something, and watch the turn happen.
 ## Checks
 
 ```bash
-npm run test:all   # 86 checks: spool and fetcher, extension against a stub pi API,
+npm run test:all   # 85 checks: spool and fetcher, extension against a stub pi API,
                    # Graph against a stubbed Graph, sign-in against a stubbed identity
                    # platform, IMAP against a stubbed server. Offline, no credentials.
 npm run live       # drives a real pi over RPC, settles it, spools a message and watches for a
