@@ -3,6 +3,9 @@
  *
  *   node scripts/live-test.mjs
  *
+ *   node scripts/live-test.mjs              the extension loaded explicitly with -e
+ *   node scripts/live-test.mjs --installed  the installed package, loaded by pi itself
+ *
  * Layer 1 proves what the extension would send. Only this proves pi accepts it: print mode exits
  * when the prompt settles, so anything that happens while the agent is idle — which is the whole
  * feature — can only be seen by keeping the process alive. Watch for an `agent_start` with no
@@ -30,8 +33,12 @@ const env = {
 	PI_EMAIL_LISTENER_AUTOSTART: "1",
 };
 
+const installed = process.argv.includes("--installed");
 const piEntry = "node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js";
-const pi = spawn(process.execPath, [piEntry, "--mode", "rpc", "--no-session", "-e", "./src/extension.ts"], {
+// Without -e, the extension has to come from the installed package — which is a different claim
+// from "the code works": it is the claim that pi runs what was installed.
+const args = [piEntry, "--mode", "rpc", "--no-session", ...(installed ? [] : ["-e", "./src/extension.ts"])];
+const pi = spawn(process.execPath, args, {
 	env,
 	stdio: ["pipe", "pipe", "inherit"],
 });
@@ -107,7 +114,9 @@ function close(reason) {
 		console.log(timeline.join("\n"));
 		console.log(`\n${records.length} protocol records`);
 		if (woke && wakeText) {
-			console.log("PASS: a spooled message started a turn by itself, carrying the pointer");
+			console.log(
+				`PASS: a spooled message started a turn by itself, carrying the pointer${installed ? " (extension loaded from the installed package)" : ""}`,
+			);
 		} else {
 			// Say what did happen, so a failure is diagnosable without another run.
 			const types = new Map();
