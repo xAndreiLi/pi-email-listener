@@ -7,3 +7,7 @@ node_modules/
 **/*.eml
 .env
 .env.*
+
+# jev-wiki runtime state; the decision ledger is committed as the audit trail
+docs/wiki/.jev-wiki/*
+!docs/wiki/.jev-wiki/decisions.jsonl
