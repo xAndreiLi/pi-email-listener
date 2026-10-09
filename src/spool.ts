@@ -12,7 +12,7 @@
 
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getAgentDir } from "@earendil-works/pi-coding-agent";
+import { agentDir } from "./config.ts";
 import type { Cursor } from "./source.ts";
 
 export interface Address {
@@ -35,7 +35,7 @@ export interface StoredMessage {
 }
 
 export function mailRoot(): string {
-	return process.env.PI_EMAIL_LISTENER_MAIL_DIR ?? join(getAgentDir(), "mail");
+	return process.env.PI_EMAIL_LISTENER_MAIL_DIR ?? join(agentDir(), "mail");
 }
 
 export function accountDir(account: string): string {

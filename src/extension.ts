@@ -10,7 +10,8 @@
  * stranger's message but cannot act on it unattended.
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { join } from "node:path";
+import { type ExtensionAPI, getAgentDir } from "@earendil-works/pi-coding-agent";
 import { loadConfig, readConfigFile } from "./config.ts";
 import { serviceState, serviceStatusText, startService, stopService } from "./service.ts";
 import { runSetup } from "./setup.ts";
@@ -37,6 +38,10 @@ const CAPTURE_NOTICE =
 	"Session capture must be off while this is on: a mail turn puts a stranger's message in the transcript, and capture copies the transcript on settle.";
 
 export default function (pi: ExtensionAPI) {
+	// pi knows its own agent directory; pass it to the config, the spool and the detached fetcher,
+	// which inherits this environment and cannot import pi.
+	process.env.PI_EMAIL_LISTENER_CONFIG ??= join(getAgentDir(), "pi-email-listener.json");
+	process.env.PI_EMAIL_LISTENER_MAIL_DIR ??= join(getAgentDir(), "mail");
 	let timer: ReturnType<typeof setInterval> | undefined;
 	let ctx: Ctx | undefined;
 	/** True while a turn started by a message carrying a link or an attachment is still running. */

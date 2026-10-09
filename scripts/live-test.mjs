@@ -148,7 +148,7 @@ setTimeout(() => {
 			"No links and no attachments here.",
 		].join("\r\n"),
 	);
-	const stored = spawn(process.execPath, ["node_modules/jiti/lib/jiti-cli.mjs", "scripts/fetch.ts", "--once"], {
+	const stored = spawn(process.execPath, ["src/daemon.mjs", "--once"], {
 		env,
 		stdio: ["ignore", "pipe", "inherit"],
 	});

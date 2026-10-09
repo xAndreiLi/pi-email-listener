@@ -7,9 +7,10 @@
  * it asserts on are the paths a real adapter will use.
  */
 
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const root = mkdtempSync(join(tmpdir(), "pi-email-listener-"));
 process.env.PI_EMAIL_LISTENER_MAIL_DIR = join(root, "mail");
@@ -49,6 +50,25 @@ write("a.eml", [
 
 check("config points at the fixture directory", account.dir === maildir);
 check("the spool defaults under the agent directory", getAgentDir().endsWith(join(".pi", "agent")));
+
+// The detached fetcher works out the agent directory without pi; it has to land where pi does.
+const { agentDir } = await import("../src/config.ts");
+const piDirBefore = process.env.PI_CODING_AGENT_DIR;
+delete process.env.PI_CODING_AGENT_DIR;
+check("the agent directory matches pi's by default", agentDir() === getAgentDir());
+process.env.PI_CODING_AGENT_DIR = "~/elsewhere/agent";
+check("and when PI_CODING_AGENT_DIR starts with ~", agentDir() === getAgentDir());
+process.env.PI_CODING_AGENT_DIR = join(root, "agent");
+check("and when it is a plain path", agentDir() === getAgentDir());
+if (piDirBefore === undefined) delete process.env.PI_CODING_AGENT_DIR;
+else process.env.PI_CODING_AGENT_DIR = piDirBefore;
+
+// pi is only there for the extension; an installed fetcher cannot resolve it (see the npm-install gotcha).
+const srcDir = fileURLToPath(new URL("../src/", import.meta.url));
+const importsPi = readdirSync(srcDir)
+	.filter((file) => /\.(ts|mjs)$/.test(file) && file !== "extension.ts")
+	.filter((file) => /^import\s+(?!type\b)[^;]*from\s+"@earendil-works\//m.test(readFileSync(join(srcDir, file), "utf8")));
+check("nothing the fetcher loads imports pi at runtime", importsPi.length === 0);
 
 check("a first pass stores the message", (await syncAccount(account)) === 1);
 check("a second pass stores nothing", (await syncAccount(account)) === 0);

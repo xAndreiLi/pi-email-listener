@@ -12,7 +12,7 @@
 
 import { spawn } from "node:child_process";
 import { existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { mailRoot } from "./spool.ts";
 
@@ -64,11 +64,11 @@ export function startService(): ServiceState {
 	const current = serviceState();
 	if (current.alive) return current;
 
-	// Plain node, no loader and no shell: Node strips the types itself, which is what lets the
-	// service run where pi is not.
-	const entry = join(dirname(fileURLToPath(import.meta.url)), "..", "scripts", "fetch.ts");
+	// Plain node and a plain-JavaScript entry, no shell: an installed copy lives under node_modules,
+	// where Node will not strip types, so the entry loads the fetcher through jiti instead.
+	const entry = fileURLToPath(new URL("./daemon.mjs", import.meta.url));
 	const out = openSync(logPath(), "a");
-	const child = spawn(process.execPath, ["--experimental-strip-types", entry], {
+	const child = spawn(process.execPath, [entry], {
 		detached: true,
 		windowsHide: true,
 		stdio: ["ignore", out, out],

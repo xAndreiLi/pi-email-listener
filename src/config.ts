@@ -4,8 +4,8 @@
  */
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
-import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
 export interface AccountConfig {
 	name: string;
@@ -38,8 +38,21 @@ export interface Config {
 	service?: { autoStart?: boolean };
 }
 
+/**
+ * pi's agent directory, worked out the way pi does without importing pi: the detached fetcher runs
+ * in plain node, where pi's packages are not installed. Inside pi the extension sets the config and
+ * mail paths from pi itself, so this only decides for a checkout run by hand.
+ */
+export function agentDir(): string {
+	const configured = process.env.PI_CODING_AGENT_DIR;
+	if (!configured) return join(homedir(), ".pi", "agent");
+	if (configured === "~") return homedir();
+	const tilde = configured.startsWith("~/") || (process.platform === "win32" && configured.startsWith("~\\"));
+	return tilde ? join(homedir(), configured.slice(2)) : configured;
+}
+
 export function configPath(): string {
-	return process.env.PI_EMAIL_LISTENER_CONFIG ?? join(getAgentDir(), "pi-email-listener.json");
+	return process.env.PI_EMAIL_LISTENER_CONFIG ?? join(agentDir(), "pi-email-listener.json");
 }
 
 export function loadConfig(path = configPath()): Config {
