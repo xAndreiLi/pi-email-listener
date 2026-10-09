@@ -16,6 +16,8 @@ files:
     C:/Coding/pi-email-listener/src/microsoft-auth.ts,
     C:/Coding/pi-email-listener/src/wake.ts,
     C:/Coding/pi-email-listener/src/extension.ts,
+    C:/Coding/pi-email-listener/src/daemon.mjs,
+    C:/Coding/pi-email-listener/src/service.ts,
     C:/Coding/pi-email-listener/docs/PLAN.md,
   ]
 claims:
@@ -93,10 +95,11 @@ mailbox ──▶ fetcher (always on, no pi) ──▶ spool of files ──▶ 
 | `src/graph.ts` | Microsoft Graph: delta on one folder bounded by `receivedDateTime ge`, paging, MIME through `$value`. See [the Graph page](microsoft-graph-source.md). |
 | `src/microsoft-auth.ts` | The device code sign-in and the token store, refreshed when close to expiring. |
 | `src/spool.ts` | The layout: raw message, `index.jsonl`, `cursor.json`, `delivered.json` per account. Store never overwrites an existing file. |
-| `src/config.ts` | Accounts from `<agent dir>/pi-email-listener.json`, movable with `PI_EMAIL_LISTENER_CONFIG`. Provider-specific fields: `dir` for fixture, `clientId`/`tenant`/`mailbox`/`folder`/`since` for graph. |
+| `src/config.ts` | Accounts from `<agent dir>/pi-email-listener.json`, movable with `PI_EMAIL_LISTENER_CONFIG`. `agentDir()` reproduces pi's own rule without importing pi. Provider-specific fields: `dir` for fixture, `clientId`/`tenant`/`mailbox`/`folder`/`since` for graph. |
 | `src/fetcher.ts` | One pass per account, ids in the index skipped, the provider's cursor stored, one broken account not stopping the others. Polls forever or `--once`. Long message ids get a hashed file name. |
 | `src/wake.ts` | What is undelivered, the pointer text, and whether a message needs care. No pi imports: this is the half the stub test drives directly. |
-| `src/service.ts` | The detached fetcher: start (plain node, no loader), one process only, pid and start time in `service.json`, output in `service.log`, stop from any later session. |
+| `src/daemon.mjs` | The fetcher's entry point, for the service and for `npm run fetch`: plain JavaScript that loads `fetcher.ts` through jiti, so an npm-installed copy runs from under `node_modules`. |
+| `src/service.ts` | The detached fetcher: start (plain node on `src/daemon.mjs`), one process only, pid and start time in `service.json`, output in `service.log`, stop from any later session. |
 | `src/setup.ts` | The wizard as logic with the dialogs injected: what is asked, in what order, and what is verified before anything is written. |
 | `src/extension.ts` | The pi wiring: three commands, the timer, `sendMessage`, the `tool_call` quarantine, service autostart, teardown on `session_shutdown`. |
 
@@ -110,6 +113,9 @@ mailbox ──▶ fetcher (always on, no pi) ──▶ spool of files ──▶ 
 
 ## Invariants
 
+- Only `src/extension.ts` imports pi at runtime. Inside pi it hands pi's agent directory to the rest
+  through `PI_EMAIL_LISTENER_CONFIG` and `PI_EMAIL_LISTENER_MAIL_DIR`, which the detached child
+  inherits. `self-check` enforces both halves ([the npm-install gotcha](../gotchas/gotcha-npm-install-cannot-start-fetcher.md)).
 - The fetcher never calls into pi, and the extension never touches a mailbox. Adding a provider means
   writing `listNew` and `fetch` and nothing else.
 - A message is stored once. The file name derives from the provider id — hashed at the tail when the

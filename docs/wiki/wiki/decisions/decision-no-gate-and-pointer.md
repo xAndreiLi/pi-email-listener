@@ -49,7 +49,8 @@ claims:
     support: 0.9
     evidence: ["user: Andrei Li, 2026-10-09 — \"We should be tracking all emails always, and updating when there is a new email or if we are behind on sync, but the process that actually turns the agent should require the user to set up this service through a pi session.\""]
     reviewed: 2026-10-09
-    last_checked: 2026-10-09  - id: c7
+    last_checked: 2026-10-09
+  - id: c7
     text: "The provider built first is Microsoft Graph for Outlook, because a person Andrei works with needs it, which leaves his own personal Gmail without a provider — that would take the IMAP adapter, which is not built. So the live test of the Graph path needs a Microsoft mailbox (his own or that person's), and his Gmail account cannot serve as the first live target until IMAP exists."
     status: user-stated
     support: 0.85
@@ -88,7 +89,7 @@ claims:
     text: "The finished product is always on: the fetcher runs as a detached process that outlives the session that started it, and a session that starts makes sure it is running when the config says so. It is one process, recorded in one file, with its own log, started and stopped from any session; the deliberate limit is that it is not an operating-system service, so it does not survive a reboot until somebody needs that."
     status: user-stated
     support: 0.9
-    evidence: ["user: Andrei Li, 2026-10-09 — \"Build for the finished product, it will be always on as a detached process once configured.\"", "file: src/service.ts — startService() spawns plain node with --experimental-strip-types on scripts/fetch.ts, detached, and writes pid plus start time to service.json; a second start returns the running pid", "command: npm run service-check → 'the service starts and reports a pid', 'starting it twice does not start a second one', 'it is fetching, and saying so in its own log', 'it stops', 'and stays stopped'"]
+    evidence: ["user: Andrei Li, 2026-10-09 — \"Build for the finished product, it will be always on as a detached process once configured.\"", "file: src/service.ts — startService() spawns plain node on src/daemon.mjs (which loads the fetcher through jiti, so an npm-installed copy runs too — changed 2026-10-09 from scripts/fetch.ts), detached, and writes pid plus start time to service.json; a second start returns the running pid", "command: npm run service-check → 'the service starts and reports a pid', 'starting it twice does not start a second one', 'it is fetching, and saying so in its own log', 'it stops', 'and stays stopped'"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
   - id: c13
@@ -103,6 +104,20 @@ claims:
     status: user-stated
     support: 0.9
     evidence: ["user: Andrei Li, 2026-10-09 — \"Lets make the setup process as frictionless as possible, so lets build the package to automatically pull up what users need to set up their agent's email.\"", "file: src/setup.ts — the questions and the order, with the dialogs injected; src/extension.ts registers /email-setup, /email-watch and /email-service", "command: npm run setup-check → 18 checks including 'it verifies the login before writing anything', 'a failed login writes no config at all', 'cancelling at the address writes nothing', 'settings this version does not know about survive'"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c15
+    text: "Andrei called AgentMail's agent sign-up 'a great solution' to the intake problem, and asked for an AgentMail inbox to be set up for his machine under the name SuRuiling, with tests run against it. The route itself, and what was proven live, is on the AgentMail page."
+    status: user-stated
+    support: 0.9
+    evidence: ["user: Andrei Li, 2026-10-09 — \"Agentmail sounds like a great solution to this, though im curious what the limitations are for sending emails. You can run tests and set up an agentmail for my machine. try to use the name SuRuiling.\"", "file: docs/wiki/wiki/architecture/agentmail-agent-inbox.md — c3 and c5 record the live sign-up of suruiling@agentmail.to"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c16
+    text: "docs/INTAKE.md stays as written, as an artifact. Findings made after it go into the wiki, and the document is not updated with them."
+    status: user-stated
+    support: 0.9
+    evidence: ["user: Andrei Li, 2026-10-09 — \"The document can stay as a artifact, just record your findings in the wiki.\""]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
 
@@ -124,5 +139,6 @@ filter the package applies on their behalf.
 
 - [Two halves joined by a spool](../architecture/architecture-spool-and-wake.md)
 - [A mail turn meets wiki capture](../gotchas/gotcha-mail-turn-meets-capture.md)
+- [AgentMail's agent sign-up](../architecture/agentmail-agent-inbox.md) — the intake route Andrei called "a great solution" (c15)
 - home wiki: `decisions/decision-secret-hygiene-in-capture.md` — capture snapshots the transcript
 - home wiki: `decisions/decision-long-process-gate.md` — the sibling package's opposite answer

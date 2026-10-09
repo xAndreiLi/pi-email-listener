@@ -5,7 +5,7 @@ topic: gotchas
 summary: "Gmail can refuse myaccount.google.com/apppasswords with the setting you are looking for is not available for your account even with 2-Step Verification properly on and a phone number registered, so the cause is not reliably diagnosable from outside. The consequence is what matters: that account cannot be read by this package, and the way out is a mailbox from a host that sells IMAP, not another attempt at Google."
 tags: [gmail, app-password, 2fa, passkey, setup, gotcha]
 updated: 2026-10-09
-sources: [https://mailbox-mcp.com/guides/gmail-app-password-not-available/, https://support.google.com/accounts/answer/185833]
+sources: [https://mailbox-mcp.com/guides/gmail-app-password-not-available/, https://support.google.com/accounts/answer/185833, https://support.google.com/cloud/answer/7454865, https://developers.google.com/apps-script/guides/services/quotas, raw/sessions/2026-10-09-session-2026-10-09-080352.md]
 files: [C:/Coding/pi-email-listener/src/setup.ts]
 claims:
   - id: c1
@@ -20,6 +20,13 @@ claims:
     status: verified
     support: 0.85
     evidence: ["file: src/setup.ts — runSetup()'s verification failure notice lists the three causes in that order", "command: npm run setup-check → 'a failed login writes no config at all' still passes with the longer notice"]
+    reviewed: 2026-10-09
+    last_checked: 2026-10-09
+  - id: c3
+    text: "Google documents no verification exemption for Apps Script: a new script that requests access to consumer data may show the 'unverified app' screen before the consent flow. For consumer accounts Apps Script allows 20,000 email reads a day, and Google states that all quotas are subject to elimination, reduction or change at any time without notice."
+    status: verified
+    support: 0.8
+    evidence: ["source: support.google.com/cloud/answer/7454865 — 'If a new Apps Script script requests OAuth access to data that belongs to consumers or users in other domains, the \"unverified app\" screen might display before the OAuth consent flow'", "source: developers.google.com Apps Script quotas — 'Email read/write (excluding send): 20,000 / day… All quotas are subject to elimination, reduction, or change at any time, without notice'"]
     reviewed: 2026-10-09
     last_checked: 2026-10-09
 ---
@@ -50,3 +57,11 @@ The one that looks free and is not:
   issued a refresh token that expires in **seven days** (Google's own OAuth documentation), which suits a
   weekend experiment and not an always-on service. Leaving testing means Google's verification review for
   Gmail scopes. Correct as an experiment, wrong as the front door.
+- **The user's own Apps Script.** A script copied into the agent's account can read Gmail and answer a
+  web-app URL, with no app password and no Cloud project, and consumer quotas are ample for polling
+  ([c3](#c3)). But Google gives Apps Script no verification exemption, so the person clicks through an
+  "unverified app" warning, then deploys and pastes a URL. A fallback for someone who must stay on
+  Gmail, not a front door.
+
+And one that needs no Google account at all: an inbox the package creates itself, read over IMAP with
+its API key — see [AgentMail's agent sign-up](../architecture/agentmail-agent-inbox.md).

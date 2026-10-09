@@ -51,3 +51,36 @@
 ## [2026-10-09] finalize | Checked whether the agent's mailbox could be something we run rather than another provider's, and recorded the verified shape: a mail server on the user's own machine cannot be the receiving end (public MX, port 25, and mail bounced by downtime lands on the sender days later), but a Cloudflare domain with Email Routing pointed at a Worker that stores raw mail in KV — pulled locally over the REST API with a scoped token — is free, unlimited inbound, and revocable by nobody. Also recorded the honest cost: setup only a technical person can do, one more adapter, and that hosting it for others would mean running a mail service.
 - Updated: architecture/owning-the-drop.md
 
+## [2026-10-09] finalize | Added the pattern behind every wall we have hit — policy rather than protocol, getting taller the closer a design sits to reading somebody's real mailbox — with the four incidents as evidence. Also recorded the two alternatives researched while writing the briefing: ForwardEmail's free tier forwards but stores nothing so it means their paid tier, and the Gmail API's choice between seven-day tokens in Testing and verification requirements in Production. The repository now carries docs/INTAKE.md, the full briefing written for Andrei to think with.
+- Updated: architecture/owning-the-drop.md
+
+## [2026-10-09] capture | 9 insights (tool)
+- Raw: raw/sessions/2026-10-09-session-2026-10-09-080256.md
+- Filed 0 · reinforced 1 · review 3 · rejected 5
+
+## [2026-10-09] capture | 5 insights (tool)
+- Raw: raw/sessions/2026-10-09-session-2026-10-09-080352.md
+- Filed 2 · reinforced 0 · review 0 · rejected 3
+
+## [2026-10-09] finalize | Researched one-click setup for INTAKE.md. Answers to §7 Q1 (wrangler 4.113 creates routing rules and storage from one deploy; zone onboarding still needs Zone Settings Write, a dashboard click), Q2 (ForwardEmail speaks IMAP but needs a domain) and Q4 (Cloudflare rejects failed auth and RBL senders, no spam filter). New route: AgentMail's agent sign-up, a receive-only inbox the package can create itself, readable by the existing IMAP source. New gotcha: the npm-installed package cannot start its fetcher (three verified blockers; pi-jev-wiki's jiti launcher is the fix pattern). Apps Script recorded as a Gmail fallback.
+- Updated: architecture/owning-the-drop.md
+- Updated: architecture/agentmail-agent-inbox.md
+- Updated: gotchas/gotcha-npm-install-cannot-start-fetcher.md
+- Updated: gotchas/gotcha-gmail-app-password.md
+
+## [2026-10-09] capture | 8 insights (tool)
+- Raw: raw/sessions/2026-10-09-session-2026-10-09-082544.md
+- Filed 0 · reinforced 3 · review 1 · rejected 4
+
+## [2026-10-09] finalize | AgentMail proven live and set up on Andrei's machine: suruiling@agentmail.to signed up receive-only, the existing IMAP source logged in and ran an empty first pass, and an unclaimed agent org reports 1 inbox and 0 domains. Sending limits recorded for Andrei's question. npm-install blockers fixed (src/daemon.mjs via jiti; only extension.ts imports pi), proven red to green in the installed shape and guarded by self-check (125 checks). Recorded Andrei's calls: AgentMail is 'a great solution', and INTAKE.md stays an artifact. Also fixed a fused c6/c7 line in the decisions page frontmatter.
+- Updated: architecture/agentmail-agent-inbox.md
+- Updated: gotchas/gotcha-npm-install-cannot-start-fetcher.md
+- Updated: architecture/architecture-spool-and-wake.md
+- Updated: decisions/decision-no-gate-and-pointer.md
+
+## [2026-10-09] lint | 0 added, 0 broken links, 42 unbacked claims
+- Pages: 9
+- TOC updated: 0 · missing files: 0
+- Orphans: 0 · raw backlog: 0
+- Contradiction checks: 0 · duplicate candidates: 0
+
